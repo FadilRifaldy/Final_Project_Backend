@@ -14,5 +14,691 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ============================================
+// ENUMS
+// ============================================
 
+enum UserRole {
+  USER
+  STORE_ADMIN
+  SUPER_ADMIN
+}
+
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum StockJournalType {
+  IN   // Penambahan stock (Purchase Order, Return, Adjustment)
+  OUT  // Pengurangan stock (Sales Order, Damaged, Adjustment)
+}
+
+enum DiscountType {
+  PRODUCT          // Diskon untuk produk tertentu
+  CART             // Diskon untuk total belanja keranjang (min purchase)
+  SHIPPING         // Diskon ongkir
+  BUY_ONE_GET_ONE  // BOGO
+}
+
+enum DiscountValueType {
+  PERCENTAGE  // Diskon dalam persen (%)
+  NOMINAL     // Diskon dalam nominal (Rp)
+}
+
+enum VoucherType {
+  PRODUCT    // Voucher untuk produk tertentu
+  CART       // Voucher untuk total belanja
+  SHIPPING   // Voucher ongkir
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT          // User baru buat order, belum bayar
+  AWAITING_PAYMENT_PROOF   // User sudah upload bukti transfer, tunggu konfirmasi admin
+  PROCESSING               // Admin konfirmasi payment, proses packing
+  SHIPPED                  // Barang sudah dikirim
+  DELIVERED                // Barang sudah sampai (belum konfirmasi user)
+  COMPLETED                // User konfirmasi terima barang
+  CANCELLED                // Order dibatalkan
+}
+
+enum PaymentMethod {
+  MANUAL_TRANSFER   // Transfer bank manual
+  PAYMENT_GATEWAY   // Midtrans/payment gateway
+  COD               // Cash on delivery (optional)
+}
+
+enum PaymentStatus {
+  UNPAID     // Belum bayar
+  PENDING    // Menunggu konfirmasi (untuk manual transfer)
+  PAID       // Sudah dibayar dan dikonfirmasi
+  FAILED     // Payment gagal
+  REFUNDED   // Uang dikembalikan (jika cancel setelah bayar)
+}
+
+// ============================================
+// FEATURE 1: USER & AUTHENTICATION
+// ============================================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String?   // Nullable untuk social login
+  name          String
+  phone         String?
+  profileImage  String?
+  role          UserRole  @default(USER)
+  isVerified    Boolean   @default(false)
+  referralCode  String    @unique @default(cuid())
+  referredById  String?
+  
+  // Social Login
+  provider      String?   // 'google', 'facebook', null (email)
+  providerId    String?   // ID dari provider
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  referredBy         User?                @relation("UserReferral", fields: [referredById], references: [id])
+  referrals          User[]               @relation("UserReferral")
+  addresses          Address[]
+  carts              Cart[]
+  orders             Order[]
+  userWarehouses     UserWarehouse[]      // Assignment store admin ke warehouse
+  verificationTokens VerificationToken[]
+  stockJournals      StockJournal[]       // Stock journals yang dibuat user ini
+  paymentProofs      PaymentProof[]       // Bukti transfer yang diupload
+  userVouchers       UserVoucher[]        // Voucher yang dimiliki user
+
+  @@index([email])
+  @@index([referralCode])
+  @@index([role])
+  @@map("users")
+}
+
+model VerificationToken {
+  id        String    @id @default(uuid())
+  userId    String
+  token     String    @unique
+  type      TokenType
+  expiresAt DateTime  // 1 jam dari createdAt
+  isUsed    Boolean   @default(false)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  
+  // Relations
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("verification_tokens")
+}
+
+model Address {
+  id            String   @id @default(uuid())
+  userId        String
+  label         String   // 'Rumah', 'Kantor', dll
+  recipientName String
+  phone         String
+  
+  // Address Details (dari RajaOngkir)
+  street        String
+  city          String
+  district      String   // Kecamatan
+  province      String
+  postalCode    String
+  
+  // Coordinates (dari OpenCage/Google Maps)
+  latitude      Float
+  longitude     Float
+  
+  // Additional
+  notes         String?  // Patokan/catatan
+  isPrimary     Boolean  @default(false)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders        Order[]  // Order yang menggunakan address ini
+
+  @@index([userId])
+  @@index([latitude, longitude]) // Untuk pencarian warehouse terdekat
+  @@map("addresses")
+}
+
+model ShippingMethod {
+  id            String   @id @default(uuid())
+  courier       String   // 'JNE', 'TIKI', 'POS'
+  service       String   // 'REG', 'YES', 'ONS'
+  description   String   // 'Layanan Reguler'
+  estimatedDays String   // '2-3 hari'
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  orders        Order[]
+
+  @@unique([courier, service])
+  @@index([isActive])
+  @@map("shipping_methods")
+}
+
+// ============================================
+// FEATURE 2: PRODUCT & INVENTORY
+// ============================================
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  // Relations
+  products  Product[]
+  
+  @@map("categories")
+}
+
+// Product Master (iPhone 17)
+model Product {
+  id          String   @id @default(uuid())
+  name        String   @unique // "iPhone 17"
+  description String?  @db.Text
+  categoryId  String
+  isDeleted   Boolean  @default(false) // Soft delete
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  category          Category           @relation(fields: [categoryId], references: [id])
+  images            ProductImage[]
+  variants          ProductVariant[]   // iPhone 17 Pro 256GB Black, iPhone 17 Pro 512GB White, dll
+  
+  @@index([categoryId])
+  @@index([isDeleted])
+  @@map("products")
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String
+  imageUrl  String   // URL dari Cloudinary
+  order     Int      @default(0) // Urutan gambar (0 = primary)
+  createdAt DateTime @default(now())
+  
+  // Relations
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@index([productId])
+  @@map("product_images")
+}
+
+// Product Variant (iPhone 17 Pro 256GB Black)
+// Variant = kombinasi warna + memory + spek lain
+model ProductVariant {
+  id          String   @id @default(uuid())
+  productId   String
+  sku         String   @unique   // "IPH17-PRO-256-BLK"
+  name        String               // "iPhone 17 Pro 256GB Black"
+  
+  // Variant attributes
+  color       String?              // "Black", "White", "Gold"
+  size        String?              // "256GB", "512GB", "1TB"
+  weight      Float?               // Berat dalam gram
+  
+  price       Decimal  @db.Decimal(12, 2)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  product           Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  inventories       Inventory[]         // Stock di berbagai warehouse
+  stockJournals     StockJournal[]      // History perubahan stock
+  cartItems         CartItem[]          // Cart items untuk variant ini
+  orderItems        OrderItem[]         // Order items untuk variant ini
+  productDiscounts  ProductDiscount[]   // Diskon untuk variant tertentu
+  
+  @@index([productId])
+  @@index([sku])
+  @@map("product_variants")
+}
+
+// ============================================
+// WAREHOUSE & INVENTORY MANAGEMENT
+// ============================================
+
+model Warehouse {
+  id               String      @id @default(uuid())
+  name             String
+  code             String      @unique // "WH-JKT-01"
+  
+  // Address
+  street           String
+  city             String
+  district         String?
+  province         String
+  postalCode       String?
+  
+  // Coordinates
+  latitude         Float
+  longitude        Float
+  
+  // Service area
+  maxServiceRadius Float       @default(10.0) // KM
+  
+  isActive         Boolean     @default(true)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  
+  // Relations
+  inventories      Inventory[]
+  stockJournals    StockJournal[]
+  userWarehouses   UserWarehouse[]   // Store admins assigned
+  orders           Order[]           // Orders fulfilled by this warehouse
+  
+  @@index([latitude, longitude])
+  @@index([isActive])
+  @@map("warehouses")
+}
+
+// Assignment Store Admin ke Warehouse
+model UserWarehouse {
+  id          String   @id @default(uuid())
+  userId      String   // Store Admin
+  warehouseId String
+  assignedBy  String   // Super Admin yang assign
+  assignedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, warehouseId])
+  @@index([userId])
+  @@index([warehouseId])
+  @@map("user_warehouses")
+}
+
+// Inventory per ProductVariant per Warehouse
+model Inventory {
+  id                String          @id @default(uuid())
+  productVariantId  String
+  warehouseId       String
+  
+  quantity          Int             @default(0)      // Total stock fisik
+  reserved          Int             @default(0)      // Stock reserved untuk pending orders
+  // Available stock = quantity - reserved
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  // Relations
+  productVariant    ProductVariant  @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  warehouse         Warehouse       @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  
+  @@unique([productVariantId, warehouseId])
+  @@index([productVariantId])
+  @@index([warehouseId])
+  @@map("inventories")
+}
+
+// ⚠️ CRITICAL: Stock journal untuk audit trail
+model StockJournal {
+  id                String            @id @default(uuid())
+  productVariantId  String
+  warehouseId       String
+  
+  type              StockJournalType  // IN atau OUT
+  quantity          Int
+  
+  // Audit trail
+  stockBefore       Int               // Stock sebelum perubahan
+  stockAfter        Int               // Stock setelah perubahan
+  
+  // Reference
+  referenceNo       String            // "PO-001", "SO-001", "ORDER-123"
+  reason            String            // "Purchase Order", "Sales Order"
+  notes             String?           @db.Text
+  
+  relatedOrderId    String?
+  createdBy         String
+  createdAt         DateTime          @default(now())
+  
+  // Relations
+  productVariant    ProductVariant    @relation(fields: [productVariantId], references: [id])
+  warehouse         Warehouse         @relation(fields: [warehouseId], references: [id])
+  creator           User              @relation(fields: [createdBy], references: [id])
+  order             Order?            @relation(fields: [relatedOrderId], references: [id])
+  
+  @@index([productVariantId])
+  @@index([warehouseId])
+  @@index([createdAt])
+  @@index([relatedOrderId])
+  @@map("stock_journals")
+}
+
+// ============================================
+// DISCOUNT & VOUCHER MANAGEMENT
+// ============================================
+
+// Diskon yang dibuat oleh admin (per-product, cart, shipping, BOGO)
+model Discount {
+  id               String             @id @default(uuid())
+  name             String
+  description      String?            @db.Text
+  
+  type             DiscountType
+  discountType     DiscountValueType  // PERCENTAGE atau NOMINAL
+  discountValue    Decimal            @db.Decimal(12, 2)
+  
+  // Conditions
+  minPurchase      Decimal?           @db.Decimal(12, 2) // Untuk type CART
+  maxDiscount      Decimal?           @db.Decimal(12, 2) // Limit max diskon
+  
+  // BOGO
+  buyQuantity      Int?               // Untuk type BUY_ONE_GET_ONE
+  getQuantity      Int?               // Untuk type BUY_ONE_GET_ONE
+  
+  // Validity
+  startDate        DateTime
+  endDate          DateTime
+  isActive         Boolean            @default(true)
+  
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  
+  // Relations
+  productDiscounts ProductDiscount[]  // Untuk type PRODUCT & BOGO
+  discountUsages   DiscountUsage[]
+  
+  @@index([type])
+  @@index([isActive])
+  @@index([startDate, endDate])
+  @@map("discounts")
+}
+
+// Relasi Discount ke ProductVariant (untuk diskon produk tertentu)
+model ProductDiscount {
+  id                String          @id @default(uuid())
+  discountId        String
+  productVariantId  String
+  createdAt         DateTime        @default(now())
+  
+  // Relations
+  discount          Discount        @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  productVariant    ProductVariant  @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  
+  @@unique([discountId, productVariantId])
+  @@index([discountId])
+  @@index([productVariantId])
+  @@map("product_discounts")
+}
+
+// Voucher GLOBAL dari aplikasi (dapat dari referral, min purchase, dll)
+model Voucher {
+  id               String         @id @default(uuid())
+  code             String         @unique // "WELCOME10", "NEWUSER50"
+  name             String
+  description      String?        @db.Text
+  
+  type             VoucherType
+  discountType     DiscountValueType
+  discountValue    Decimal        @db.Decimal(12, 2)
+  
+  // Conditions
+  minPurchase      Decimal?       @db.Decimal(12, 2)
+  maxDiscount      Decimal?       @db.Decimal(12, 2)
+  maxUsagePerUser  Int            @default(1) // Berapa kali user bisa pakai
+  maxTotalUsage    Int?           // Total usage limit (null = unlimited)
+  currentUsage     Int            @default(0)
+  
+  // Validity
+  startDate        DateTime
+  endDate          DateTime
+  isActive         Boolean        @default(true)
+  
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  
+  // Relations
+  userVouchers     UserVoucher[]
+  voucherUsages    VoucherUsage[]
+  
+  @@index([code])
+  @@index([isActive])
+  @@map("vouchers")
+}
+
+// Voucher yang dimiliki user (claim dari voucher global)
+model UserVoucher {
+  id          String    @id @default(uuid())
+  userId      String
+  voucherId   String
+  isUsed      Boolean   @default(false)
+  usedAt      DateTime?
+  claimedAt   DateTime  @default(now())
+  expiresAt   DateTime
+  
+  // Relations
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  voucher     Voucher   @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([voucherId])
+  @@index([isUsed])
+  @@map("user_vouchers")
+}
+
+// ============================================
+// FEATURE 3: CART, ORDER, PAYMENT
+// ============================================
+
+model Cart {
+  id         String     @id @default(uuid())
+  userId     String
+  items      CartItem[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("carts")
+}
+
+model CartItem {
+  id                String          @id @default(uuid())
+  cartId            String
+  productVariantId  String
+  quantity          Int             @default(1)
+  priceAtAdd        Decimal         @db.Decimal(12,2)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  cart              Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productVariant    ProductVariant  @relation(fields: [productVariantId], references: [id])
+
+  @@unique([cartId, productVariantId])
+  @@index([cartId])
+  @@index([productVariantId])
+  @@map("cart_items")
+}
+
+model Order {
+  id                  String        @id @default(uuid())
+  userId              String
+  orderNumber         String        @unique
+  shippingAddressId   String
+  shippingWarehouseId String        // Warehouse yang fulfill order
+  shippingMethodId    String
+
+  items               OrderItem[]
+  subtotal            Decimal       @db.Decimal(12,2)
+  shippingFee         Decimal       @db.Decimal(12,2)
+  tax                 Decimal       @db.Decimal(12,2) @default(0)
+  totalDiscount       Decimal       @db.Decimal(12,2) @default(0)
+  total               Decimal       @db.Decimal(12,2)
+
+  paymentMethod       PaymentMethod
+  paymentStatus       PaymentStatus @default(UNPAID)
+  orderStatus         OrderStatus   @default(PENDING_PAYMENT)
+
+  cancelledAt         DateTime?
+  deliveredAt         DateTime?
+  completedAt         DateTime?
+
+  autoCancelAt        DateTime?     // +1h manual transfer
+  autoConfirmAt       DateTime?     // +48h after shipped
+
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shippingAddress     Address         @relation(fields: [shippingAddressId], references: [id])
+  shippingWarehouse   Warehouse       @relation(fields: [shippingWarehouseId], references: [id])
+  shippingMethod      ShippingMethod  @relation(fields: [shippingMethodId], references: [id])
+  payment             Payment?
+  history             OrderHistory[]
+  stockJournals       StockJournal[]
+  discountUsages      DiscountUsage[]
+  voucherUsages       VoucherUsage[]
+
+  @@index([userId])
+  @@index([orderStatus])
+  @@index([paymentStatus])
+  @@index([shippingWarehouseId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                 String          @id @default(uuid())
+  orderId            String
+  productVariantId   String
+  
+  // Snapshot saat order
+  sku                String
+  productName        String          // Snapshot nama
+  variantName        String          // Snapshot variant name
+  price              Decimal         @db.Decimal(12,2)
+  quantity           Int
+  subtotal           Decimal         @db.Decimal(12,2)
+  discount           Decimal         @db.Decimal(12,2) @default(0)
+  total              Decimal         @db.Decimal(12,2)
+  
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  order              Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productVariant     ProductVariant  @relation(fields: [productVariantId], references: [id])
+
+  @@index([orderId])
+  @@index([productVariantId])
+  @@map("order_items")
+}
+
+model Payment {
+  id           String        @id @default(uuid())
+  orderId      String        @unique
+  method       PaymentMethod
+  status       PaymentStatus @default(PENDING)
+  gatewayData  Json?
+  amount       Decimal       @db.Decimal(12,2)
+  currency     String        @default("IDR")
+  paidAt       DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  proofs       PaymentProof[]
+
+  @@index([orderId])
+  @@map("payments")
+}
+
+model PaymentProof {
+  id           String   @id @default(uuid())
+  paymentId    String
+  uploadedById String
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  url          String
+  verified     Boolean  @default(false)
+  verifiedBy   String?
+  verifiedAt   DateTime?
+  createdAt    DateTime @default(now())
+
+  payment      Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+
+  @@index([paymentId])
+  @@map("payment_proofs")
+}
+
+model OrderHistory {
+  id         String      @id @default(uuid())
+  orderId    String
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  note       String?
+  createdBy  String?
+  createdAt  DateTime    @default(now())
+
+  order      Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_histories")
+}
+
+// Record aplikasi discount pada order
+model DiscountUsage {
+  id                 String             @id @default(uuid())
+  orderId            String
+  discountId         String
+  
+  // Snapshot
+  discountType       DiscountType
+  discountValueType  DiscountValueType
+  discountValue      Decimal            @db.Decimal(12, 2)
+  discountAmount     Decimal            @db.Decimal(12, 2)
+  
+  createdAt          DateTime           @default(now())
+  
+  order              Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  discount           Discount           @relation(fields: [discountId], references: [id])
+  
+  @@index([orderId])
+  @@index([discountId])
+  @@map("discount_usages")
+}
+
+// Record aplikasi voucher pada order
+model VoucherUsage {
+  id                 String             @id @default(uuid())
+  orderId            String
+  voucherId          String
+  userVoucherId      String?            // Link ke UserVoucher jika dari user voucher
+  
+  // Snapshot
+  voucherCode        String
+  discountType       DiscountValueType
+  discountValue      Decimal            @db.Decimal(12, 2)
+  discountAmount     Decimal            @db.Decimal(12, 2)
+  
+  createdAt          DateTime           @default(now())
+  
+  order              Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  voucher            Voucher            @relation(fields: [voucherId], references: [id])
+  
+  @@index([orderId])
+  @@index([voucherId])
+  @@map("voucher_usages")
+}
 
