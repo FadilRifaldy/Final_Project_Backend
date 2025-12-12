@@ -3,6 +3,7 @@ dotenv.config();
 import cors from "cors";
 import express, { Application, NextFunction, Request, Response } from "express";
 import cookieParser from "cookie-parser";
+import authRouter from "./routers/auth.route";
 
 const PORT = process.env.PORT;
 
@@ -19,7 +20,7 @@ app.get("/", (req: Request, res: Response) => {
   res.status(200).send("<h1>Online Grocery</h1>");
 });
 
-//...
+app.use("/auth", authRouter);
 
 // error middleware
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
