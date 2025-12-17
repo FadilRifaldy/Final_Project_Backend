@@ -28,6 +28,7 @@ app.use("/api/categories", categoryRouter);
 app.use("/verify", emailVerifRouter);
 app.use("/user", updateProfileRouter);
 
+app.use("/categories", categoryRouter);
 
 // error middleware
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {

@@ -1,8 +1,8 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// ============================================
+// ONLINE GROCERY WEB APP - REVISED SCHEMA
+// Store-Based Model (Store = Toko fisik dengan inventory)
+// Revisi dari diskusi Nadhif 15-12-2025
+// ============================================
 
 generator client {
   provider = "prisma-client-js"
@@ -677,4 +677,3 @@ model VoucherUsage {
   @@index([voucherId])
   @@map("voucher_usages")
 }
-

@@ -105,9 +105,6 @@ class CategoryController {
      */
     async deleteCategory(req: Request, res: Response, next: NextFunction) {
         try {
-            // TODO: Get id from params
-            // TODO: Call service
-            // TODO: Return response
             const { id } = req.params;
             const category = await categoryService.deleteCategory(id);
             res.status(200).json({
