@@ -5,24 +5,10 @@ import { checkRoles } from "../middlewares/checkRole.middleware";
 
 const router = Router();
 
-/**
- * Category Routes
- * 
- * Public routes (no auth):
- * - GET /api/categories
- * - GET /api/categories/:id
- * 
- * Protected routes (Super Admin only):
- * - POST /api/categories
- * - PUT /api/categories/:id
- * - DELETE /api/categories/:id
- */
-
-// Public routes - Anyone can view categories
 router.get("/", categoryController.getAllCategories);
 router.get("/:id", categoryController.getCategoryById);
 
-// Protected routes - Super Admin only
+// Super Admin only
 router.post(
     "/",
     verifyToken,

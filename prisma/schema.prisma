@@ -1,8 +1,8 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// ============================================
+// ONLINE GROCERY WEB APP - REVISED SCHEMA
+// Store-Based Model (Store = Toko fisik dengan inventory)
+// Revisi dari diskusi Nadhif 15-12-2025
+// ============================================
 
 generator client {
   provider = "prisma-client-js"
@@ -19,16 +19,9 @@ datasource db {
 // ============================================
 
 enum UserRole {
-  USER
-  STORE_ADMIN
-  SUPER_ADMIN
-}
-
-enum ReferralReason {
-  REFERRAL_SIGNUP
-  REWARD_FREE_SHIPPING
-  REWARD_VOUCHER
-  ADMIN_ADJUSTMENT
+  CUSTOMER // Buyer/pembeli (revisi dari USER)
+  STORE_ADMIN // Admin per toko
+  SUPER_ADMIN // Admin seluruh sistem
 }
 
 enum TokenType {
@@ -37,50 +30,54 @@ enum TokenType {
 }
 
 enum StockJournalType {
-  IN   // Penambahan stock (Purchase Order, Return, Adjustment)
-  OUT  // Pengurangan stock (Sales Order, Damaged, Adjustment)
+  IN // Penambahan stock (Purchase Order, Return, Adjustment)
+  OUT // Pengurangan stock (Sales Order, Damaged, Adjustment)
 }
 
 enum DiscountType {
-  PRODUCT          // Diskon untuk produk tertentu
-  CART             // Diskon untuk total belanja keranjang (min purchase)
-  SHIPPING         // Diskon ongkir
-  BUY_ONE_GET_ONE  // BOGO
+  PRODUCT // Diskon untuk produk tertentu
+  CART // Diskon untuk total belanja (min purchase)
+  SHIPPING // Diskon ongkir
+  BUY_ONE_GET_ONE // BOGO
 }
 
 enum DiscountValueType {
-  PERCENTAGE  // Diskon dalam persen (%)
-  NOMINAL     // Diskon dalam nominal (Rp)
+  PERCENTAGE // Diskon dalam persen (%)
+  NOMINAL // Diskon dalam nominal (Rp)
+}
+
+enum VoucherScope {
+  PRODUCT // Voucher untuk produk tertentu
+  CART // Voucher untuk total belanja
+  SHIPPING // Voucher ongkir
 }
 
 enum VoucherType {
-  PRODUCT    // Voucher untuk produk tertentu
-  CART       // Voucher untuk total belanja
-  SHIPPING   // Voucher ongkir
+  PERCENTAGE // Diskon dalam persen (%)
+  NOMINAL // Diskon dalam nominal (Rp)
 }
 
 enum OrderStatus {
-  PENDING_PAYMENT          // User baru buat order, belum bayar
-  AWAITING_PAYMENT_PROOF   // User sudah upload bukti transfer, tunggu konfirmasi admin
-  PROCESSING               // Admin konfirmasi payment, proses packing
-  SHIPPED                  // Barang sudah dikirim
-  DELIVERED                // Barang sudah sampai (belum konfirmasi user)
-  COMPLETED                // User konfirmasi terima barang
-  CANCELLED                // Order dibatalkan
+  PENDING_PAYMENT // User baru buat order, belum bayar
+  AWAITING_PAYMENT_PROOF // User sudah upload bukti transfer, tunggu konfirmasi admin
+  PROCESSING // Admin konfirmasi payment, proses packing
+  SHIPPED // Barang sudah dikirim
+  DELIVERED // Barang sudah sampai (belum konfirmasi user)
+  COMPLETED // User konfirmasi terima barang
+  CANCELED // Order dibatalkan (revisi typo)
 }
 
 enum PaymentMethod {
-  MANUAL_TRANSFER   // Transfer bank manual
-  PAYMENT_GATEWAY   // Midtrans/payment gateway
-  COD               // Cash on delivery (optional)
+  MANUAL_TRANSFER // Transfer bank manual
+  PAYMENT_GATEWAY // Midtrans/payment gateway
 }
 
 enum PaymentStatus {
-  UNPAID     // Belum bayar
-  PENDING    // Menunggu konfirmasi (untuk manual transfer)
-  PAID       // Sudah dibayar dan dikonfirmasi
-  FAILED     // Payment gagal
-  REFUNDED   // Uang dikembalikan (jika cancel setelah bayar)
+  UNPAID // Belum bayar
+  PENDING // Menunggu konfirmasi (untuk manual transfer)
+  PAID // Sudah dibayar dan dikonfirmasi
+  FAILED // Payment gagal
+  REFUNDED // Uang dikembalikan (jika cancel setelah bayar)
 }
 
 // ============================================
@@ -88,37 +85,36 @@ enum PaymentStatus {
 // ============================================
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  password      String?   // Nullable untuk social login
-  name          String
-  phone         String?
-  profileImage  String?
-  role          UserRole  @default(USER)
-  isVerified    Boolean   @default(false)
-  referralCode  String    @unique @default(cuid())
-  referredById  String?
-  referralPoints Int      @default(0)
-  
+  id           String   @id @default(uuid())
+  email        String   @unique
+  password     String? // Nullable untuk social login
+  name         String
+  phone        String?
+  profileImage String?
+  role         UserRole @default(CUSTOMER)
+  isVerified   Boolean  @default(false)
+  referralCode String   @unique @default(cuid())
+  referredById String?
+
   // Social Login
-  provider      String?   // 'google', 'facebook', null (email)
-  providerId    String?   // ID dari provider
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  provider   String  @default("credential") // 'google', 'facebook', 'credential'
+  providerId String? // ID dari provider
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   // Relations
-  referredBy         User?                @relation("UserReferral", fields: [referredById], references: [id])
-  referrals          User[]               @relation("UserReferral")
-  referralHistories ReferralPointHistory[] 
+  referredBy         User?               @relation("UserReferral", fields: [referredById], references: [id])
+  referrals          User[]              @relation("UserReferral")
   addresses          Address[]
   carts              Cart[]
   orders             Order[]
-  userWarehouses     UserWarehouse[]      // Assignment store admin ke warehouse
+  userStores         UserStore[] // Assignment store admin ke store
   verificationTokens VerificationToken[]
-  stockJournals      StockJournal[]       // Stock journals yang dibuat user ini
-  paymentProofs      PaymentProof[]       // Bukti transfer yang diupload
-  userVouchers       UserVoucher[]        // Voucher yang dimiliki user
+  stockJournals      StockJournal[] // Stock journals yang dibuat user ini
+  paymentProofs      PaymentProof[] // Bukti transfer yang diupload
+  userVouchers       UserVoucher[] // Voucher yang dimiliki user
 
   @@index([email])
   @@index([referralCode])
@@ -126,29 +122,18 @@ model User {
   @@map("users")
 }
 
-model ReferralPointHistory {
-  id        String         @id @default(uuid())
-  userId    String
-  points    Int
-  reason    ReferralReason
-  createdAt DateTime       @default(now())
-
-  user      User           @relation(fields: [userId], references: [id])
-}
-
-
 model VerificationToken {
   id        String    @id @default(uuid())
   userId    String
   token     String    @unique
   type      TokenType
-  expiresAt DateTime  // 1 jam dari createdAt
+  expiresAt DateTime // 1 jam dari createdAt
   isUsed    Boolean   @default(false)
   usedAt    DateTime?
   createdAt DateTime  @default(now())
-  
+
   // Relations
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([userId])
@@ -156,55 +141,40 @@ model VerificationToken {
 }
 
 model Address {
-  id            String   @id @default(uuid())
+  id            String @id @default(uuid())
   userId        String
-  label         String   // 'Rumah', 'Kantor', dll
+  label         String // 'Rumah', 'Kantor', dll
   recipientName String
   phone         String
-  
+
   // Address Details (dari RajaOngkir)
-  street        String
-  city          String
-  district      String   // Kecamatan
-  province      String
-  postalCode    String
-  
+  street      String
+  city        String
+  district    String // Kecamatan
+  province    String
+  postalCode  String
+  addressLine String // Full address satu baris
+
   // Coordinates (dari OpenCage/Google Maps)
-  latitude      Float
-  longitude     Float
-  
+  latitude  Float
+  longitude Float
+
   // Additional
-  notes         String?  // Patokan/catatan
-  isPrimary     Boolean  @default(false)
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  notes     String? // Patokan/catatan
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orders        Order[]  // Order yang menggunakan address ini
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[] // Order yang menggunakan address ini
 
+  @@unique([userId, label])
+  @@unique([userId, isPrimary], name: "unique_user_primary")
   @@index([userId])
-  @@index([latitude, longitude]) // Untuk pencarian warehouse terdekat
+  @@index([latitude, longitude])
   @@map("addresses")
-}
-
-model ShippingMethod {
-  id            String   @id @default(uuid())
-  courier       String   // 'JNE', 'TIKI', 'POS'
-  service       String   // 'REG', 'YES', 'ONS'
-  description   String   // 'Layanan Reguler'
-  estimatedDays String   // '2-3 hari'
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  orders        Order[]
-
-  @@unique([courier, service])
-  @@index([isActive])
-  @@map("shipping_methods")
 }
 
 // ============================================
@@ -212,32 +182,36 @@ model ShippingMethod {
 // ============================================
 
 model Category {
-  id        String    @id @default(uuid())
-  name      String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
   // Relations
-  products  Product[]
-  
+  products Product[]
+
+  @@index([slug])
   @@map("categories")
 }
 
-// Product Master (iPhone 17)
+// Product Master (iPhone 17 Pro)
 model Product {
   id          String   @id @default(uuid())
-  name        String   @unique // "iPhone 17"
+  name        String   @unique // "iPhone 17 Pro"
   description String?  @db.Text
   categoryId  String
   isDeleted   Boolean  @default(false) // Soft delete
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   // Relations
-  category          Category           @relation(fields: [categoryId], references: [id])
-  images            ProductImage[]
-  variants          ProductVariant[]   // iPhone 17 Pro 256GB Black, iPhone 17 Pro 512GB White, dll
-  
+  category Category         @relation(fields: [categoryId], references: [id])
+  images   ProductImage[]
+  variants ProductVariant[] // iPhone 17 Pro 256GB Black, iPhone 17 Pro 512GB White, dll
+
   @@index([categoryId])
   @@index([isDeleted])
   @@map("products")
@@ -246,270 +220,247 @@ model Product {
 model ProductImage {
   id        String   @id @default(uuid())
   productId String
-  imageUrl  String   // URL dari Cloudinary
+  imageUrl  String // URL dari Cloudinary
   order     Int      @default(0) // Urutan gambar (0 = primary)
   createdAt DateTime @default(now())
-  
+
   // Relations
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
   @@index([productId])
   @@map("product_images")
 }
 
 // Product Variant (iPhone 17 Pro 256GB Black)
-// Variant = kombinasi warna + memory + spek lain
 model ProductVariant {
-  id          String   @id @default(uuid())
-  productId   String
-  sku         String   @unique   // "IPH17-PRO-256-BLK"
-  name        String               // "iPhone 17 Pro 256GB Black"
-  
+  id        String @id @default(uuid())
+  productId String
+  sku       String @unique // "IPH17-PRO-256-BLK"
+  name      String // "iPhone 17 Pro 256GB Black"
+  slug      String @unique // "iphone-17-pro-256gb-black"
+
   // Variant attributes
-  color       String?              // "Black", "White", "Gold"
-  size        String?              // "256GB", "512GB", "1TB"
-  weight      Float?               // Berat dalam gram
-  
-  price       Decimal  @db.Decimal(12, 2)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  color  String? // "Black", "White", "Gold"
+  size   String? // "256GB", "512GB", "1TB"
+  weight Int     @default(0) // dalam gram
+
+  price    Decimal @db.Decimal(12, 2)
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  product           Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
-  inventories       Inventory[]         // Stock di berbagai warehouse
-  stockJournals     StockJournal[]      // History perubahan stock
-  cartItems         CartItem[]          // Cart items untuk variant ini
-  orderItems        OrderItem[]         // Order items untuk variant ini
-  productDiscounts  ProductDiscount[]   // Diskon untuk variant tertentu
-  
+  product          Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  inventory        Inventory[] // Stock per store
+  cartItems        CartItem[]
+  orderItems       OrderItem[]
+  productDiscounts ProductDiscount[]
+  stockJournals    StockJournal[]    @relation("ProductVariantStockJournals")
+
   @@index([productId])
   @@index([sku])
+  @@index([slug])
+  @@index([isActive])
   @@map("product_variants")
 }
 
-// ============================================
-// WAREHOUSE & INVENTORY MANAGEMENT
-// ============================================
-
-model Warehouse {
-  id               String      @id @default(uuid())
-  name             String
-  code             String      @unique // "WH-JKT-01"
-  
-  // Address
-  street           String
-  city             String
-  district         String?
+// Store (toko fisik dengan inventory sendiri)
+model Store {
+  id               String  @id @default(uuid())
+  name             String  @unique // "Toko Jakarta Selatan"
+  address          String
+  city             String // Untuk RajaOngkir
   province         String
-  postalCode       String?
-  
-  // Coordinates
+  postalCode       String
   latitude         Float
   longitude        Float
-  
-  // Service area
-  maxServiceRadius Float       @default(10.0) // KM
-  
-  isActive         Boolean     @default(true)
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  
+  phone            String?
+  maxServiceRadius Float   @default(10) // dalam KM
+  isActive         Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  inventories      Inventory[]
-  stockJournals    StockJournal[]
-  userWarehouses   UserWarehouse[]   // Store admins assigned
-  orders           Order[]           // Orders fulfilled by this warehouse
-  
+  inventory     Inventory[]
+  orders        Order[]
+  userStores    UserStore[] // Store admins assigned
+  stockJournals StockJournal[]
+  carts         Cart[]
+
+  @@index([city])
   @@index([latitude, longitude])
   @@index([isActive])
-  @@map("warehouses")
+  @@map("stores")
 }
 
-// Assignment Store Admin ke Warehouse
-model UserWarehouse {
-  id          String   @id @default(uuid())
-  userId      String   // Store Admin
-  warehouseId String
-  assignedBy  String   // Super Admin yang assign
-  assignedAt  DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// Assignment Store Admin ke Store
+model UserStore {
+  id        String   @id @default(uuid())
+  userId    String
+  storeId   String
+  createdAt DateTime @default(now())
 
   // Relations
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  warehouse   Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, warehouseId])
+  @@unique([userId, storeId])
   @@index([userId])
-  @@index([warehouseId])
-  @@map("user_warehouses")
+  @@index([storeId])
+  @@map("user_stores")
 }
 
-// Inventory per ProductVariant per Warehouse
+// Inventory per variant per store
 model Inventory {
-  id                String          @id @default(uuid())
-  productVariantId  String
-  warehouseId       String
-  
-  quantity          Int             @default(0)      // Total stock fisik
-  reserved          Int             @default(0)      // Stock reserved untuk pending orders
-  // Available stock = quantity - reserved
-  
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  
+  productVariantId String
+  storeId          String
+  quantity         Int    @default(0)
+  reserved         Int    @default(0) // Stock yang di-reserve untuk pending orders
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  productVariant    ProductVariant  @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
-  warehouse         Warehouse       @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
-  
-  @@unique([productVariantId, warehouseId])
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  store          Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@id([productVariantId, storeId])
+  @@index([storeId])
   @@index([productVariantId])
-  @@index([warehouseId])
-  @@map("inventories")
+  @@map("inventory")
 }
 
-// ⚠️ CRITICAL: Stock journal untuk audit trail
+// Stock Journal (audit trail perubahan stock)
 model StockJournal {
-  id                String            @id @default(uuid())
-  productVariantId  String
-  warehouseId       String
-  
-  type              StockJournalType  // IN atau OUT
-  quantity          Int
-  
-  // Audit trail
-  stockBefore       Int               // Stock sebelum perubahan
-  stockAfter        Int               // Stock setelah perubahan
-  
-  // Reference
-  referenceNo       String            // "PO-001", "SO-001", "ORDER-123"
-  reason            String            // "Purchase Order", "Sales Order"
-  notes             String?           @db.Text
-  
-  relatedOrderId    String?
-  createdBy         String
-  createdAt         DateTime          @default(now())
-  
+  id               String           @id @default(uuid())
+  productVariantId String
+  storeId          String
+  type             StockJournalType // IN atau OUT
+  quantity         Int // Jumlah perubahan (+/-)
+  stockBefore      Int // Stock sebelum transaksi
+  stockAfter       Int // Stock setelah transaksi
+  referenceNo      String? // PO number, SO number, etc
+  reason           String // "Purchase Order", "Sales", "Damaged", etc
+  notes            String?
+  relatedOrderId   String? // Link ke order jika type=OUT untuk sales
+  createdBy        String // User ID yang buat journal
+  createdAt        DateTime         @default(now())
+
   // Relations
-  productVariant    ProductVariant    @relation(fields: [productVariantId], references: [id])
-  warehouse         Warehouse         @relation(fields: [warehouseId], references: [id])
-  creator           User              @relation(fields: [createdBy], references: [id])
-  order             Order?            @relation(fields: [relatedOrderId], references: [id])
-  
+  productVariant ProductVariant @relation("ProductVariantStockJournals", fields: [productVariantId], references: [id])
+  store          Store          @relation(fields: [storeId], references: [id])
+  creator        User           @relation(fields: [createdBy], references: [id])
+  order          Order?         @relation(fields: [relatedOrderId], references: [id])
+
   @@index([productVariantId])
-  @@index([warehouseId])
+  @@index([storeId])
+  @@index([type])
   @@index([createdAt])
   @@index([relatedOrderId])
   @@map("stock_journals")
 }
 
-// ============================================
-// DISCOUNT & VOUCHER MANAGEMENT
-// ============================================
-
-// Diskon yang dibuat oleh admin (per-product, cart, shipping, BOGO)
+// Discount Management
 model Discount {
-  id               String             @id @default(uuid())
-  name             String
-  description      String?            @db.Text
-  
-  type             DiscountType
-  discountType     DiscountValueType  // PERCENTAGE atau NOMINAL
-  discountValue    Decimal            @db.Decimal(12, 2)
-  
+  id                String            @id @default(uuid())
+  name              String
+  description       String?
+  type              DiscountType
+  discountValueType DiscountValueType
+  discountValue     Decimal           @db.Decimal(12, 2)
+
   // Conditions
-  minPurchase      Decimal?           @db.Decimal(12, 2) // Untuk type CART
-  maxDiscount      Decimal?           @db.Decimal(12, 2) // Limit max diskon
-  
-  // BOGO
-  buyQuantity      Int?               // Untuk type BUY_ONE_GET_ONE
-  getQuantity      Int?               // Untuk type BUY_ONE_GET_ONE
-  
+  minPurchase Decimal? @db.Decimal(12, 2) // Untuk CART discount
+  maxDiscount Decimal? @db.Decimal(12, 2) // Max potongan (jika percentage)
+  buyQuantity Int? // Untuk BOGO (beli berapa)
+  getQuantity Int? // Untuk BOGO (gratis berapa)
+
   // Validity
-  startDate        DateTime
-  endDate          DateTime
-  isActive         Boolean            @default(true)
-  
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  productDiscounts ProductDiscount[]  // Untuk type PRODUCT & BOGO
+  productDiscounts ProductDiscount[] // Link ke products (untuk PRODUCT & BOGO type)
   discountUsages   DiscountUsage[]
-  
+
   @@index([type])
   @@index([isActive])
   @@index([startDate, endDate])
   @@map("discounts")
 }
 
-// Relasi Discount ke ProductVariant (untuk diskon produk tertentu)
+// Link discount ke product variants (untuk PRODUCT & BOGO discount)
 model ProductDiscount {
-  id                String          @id @default(uuid())
-  discountId        String
-  productVariantId  String
-  createdAt         DateTime        @default(now())
-  
+  id               String   @id @default(uuid())
+  discountId       String
+  productVariantId String
+  createdAt        DateTime @default(now())
+
   // Relations
-  discount          Discount        @relation(fields: [discountId], references: [id], onDelete: Cascade)
-  productVariant    ProductVariant  @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
-  
+  discount       Discount       @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+
   @@unique([discountId, productVariantId])
   @@index([discountId])
   @@index([productVariantId])
   @@map("product_discounts")
 }
 
-// Voucher GLOBAL dari aplikasi (dapat dari referral, min purchase, dll)
+// Voucher Global (dibuat admin)
 model Voucher {
-  id               String         @id @default(uuid())
-  code             String         @unique // "WELCOME10", "NEWUSER50"
-  name             String
-  description      String?        @db.Text
-  
-  type             VoucherType
-  discountType     DiscountValueType
-  discountValue    Decimal        @db.Decimal(12, 2)
-  
+  id          String  @id @default(uuid())
+  code        String  @unique
+  name        String
+  description String?
+
+  scope         VoucherScope // PRODUCT, CART, atau SHIPPING
+  discountType  VoucherType // PERCENTAGE atau NOMINAL
+  discountValue Decimal      @db.Decimal(12, 2)
+
   // Conditions
-  minPurchase      Decimal?       @db.Decimal(12, 2)
-  maxDiscount      Decimal?       @db.Decimal(12, 2)
-  maxUsagePerUser  Int            @default(1) // Berapa kali user bisa pakai
-  maxTotalUsage    Int?           // Total usage limit (null = unlimited)
-  currentUsage     Int            @default(0)
-  
+  minPurchase     Decimal? @db.Decimal(12, 2)
+  maxDiscount     Decimal? @db.Decimal(12, 2)
+  maxUsagePerUser Int      @default(1)
+  maxTotalUsage   Int? // null = unlimited
+  currentUsage    Int      @default(0)
+
   // Validity
-  startDate        DateTime
-  endDate          DateTime
-  isActive         Boolean        @default(true)
-  
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  userVouchers     UserVoucher[]
-  voucherUsages    VoucherUsage[]
-  
+  userVouchers  UserVoucher[]
+  voucherUsages VoucherUsage[]
+
   @@index([code])
   @@index([isActive])
   @@map("vouchers")
 }
 
-// Voucher yang dimiliki user (claim dari voucher global)
+// Voucher yang dimiliki user
 model UserVoucher {
-  id          String    @id @default(uuid())
-  userId      String
-  voucherId   String
-  isUsed      Boolean   @default(false)
-  usedAt      DateTime?
-  claimedAt   DateTime  @default(now())
-  expiresAt   DateTime
-  
+  id        String    @id @default(uuid())
+  userId    String
+  voucherId String
+  isUsed    Boolean   @default(false)
+  usedAt    DateTime?
+  claimedAt DateTime  @default(now())
+  expiresAt DateTime
+
   // Relations
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  voucher     Voucher   @relation(fields: [voucherId], references: [id], onDelete: Cascade)
-  
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  voucher Voucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@index([voucherId])
   @@index([isUsed])
@@ -521,29 +472,32 @@ model UserVoucher {
 // ============================================
 
 model Cart {
-  id         String     @id @default(uuid())
-  userId     String
-  items      CartItem[]
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  storeId   String // Cart terikat ke store terdekat
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store Store @relation(fields: [storeId], references: [id])
 
   @@index([userId])
+  @@index([storeId])
   @@map("carts")
 }
 
 model CartItem {
-  id                String          @id @default(uuid())
-  cartId            String
-  productVariantId  String
-  quantity          Int             @default(1)
-  priceAtAdd        Decimal         @db.Decimal(12,2)
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  id               String   @id @default(uuid())
+  cartId           String
+  productVariantId String
+  quantity         Int      @default(1)
+  priceAtAdd       Decimal  @db.Decimal(12, 2)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  cart              Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  productVariant    ProductVariant  @relation(fields: [productVariantId], references: [id])
+  cart           Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
 
   @@unique([cartId, productVariantId])
   @@index([cartId])
@@ -552,71 +506,75 @@ model CartItem {
 }
 
 model Order {
-  id                  String        @id @default(uuid())
-  userId              String
-  orderNumber         String        @unique
-  shippingAddressId   String
-  shippingWarehouseId String        // Warehouse yang fulfill order
-  shippingMethodId    String
+  id                String @id @default(uuid())
+  userId            String
+  orderNumber       String @unique
+  shippingAddressId String
+  shippingStoreId   String // Store yang fulfill order
 
-  items               OrderItem[]
-  subtotal            Decimal       @db.Decimal(12,2)
-  shippingFee         Decimal       @db.Decimal(12,2)
-  tax                 Decimal       @db.Decimal(12,2) @default(0)
-  totalDiscount       Decimal       @db.Decimal(12,2) @default(0)
-  total               Decimal       @db.Decimal(12,2)
+  // Shipping info (snapshot per order)
+  shippingCourier     String // 'JNE', 'TIKI', 'POS'
+  shippingService     String // 'REG', 'YES', 'ONS'
+  shippingDescription String // 'Layanan Reguler'
+  shippingEstimate    String // '2-3 hari'
+  shippingFee         Decimal @db.Decimal(12, 2)
 
-  paymentMethod       PaymentMethod
-  paymentStatus       PaymentStatus @default(UNPAID)
-  orderStatus         OrderStatus   @default(PENDING_PAYMENT)
+  items         OrderItem[]
+  subtotal      Decimal     @db.Decimal(12, 2)
+  tax           Decimal     @default(0) @db.Decimal(12, 2)
+  totalDiscount Decimal     @default(0) @db.Decimal(12, 2)
+  total         Decimal     @db.Decimal(12, 2)
 
-  cancelledAt         DateTime?
-  deliveredAt         DateTime?
-  completedAt         DateTime?
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus @default(UNPAID)
+  orderStatus   OrderStatus   @default(PENDING_PAYMENT)
 
-  autoCancelAt        DateTime?     // +1h manual transfer
-  autoConfirmAt       DateTime?     // +48h after shipped
+  cancelledAt DateTime?
+  deliveredAt DateTime?
+  completedAt DateTime?
 
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  autoCancelAt  DateTime? // +1h manual transfer
+  autoConfirmAt DateTime? // +48h after shipped
 
-  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  shippingAddress     Address         @relation(fields: [shippingAddressId], references: [id])
-  shippingWarehouse   Warehouse       @relation(fields: [shippingWarehouseId], references: [id])
-  shippingMethod      ShippingMethod  @relation(fields: [shippingMethodId], references: [id])
-  payment             Payment?
-  history             OrderHistory[]
-  stockJournals       StockJournal[]
-  discountUsages      DiscountUsage[]
-  voucherUsages       VoucherUsage[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shippingAddress Address         @relation(fields: [shippingAddressId], references: [id])
+  shippingStore   Store           @relation(fields: [shippingStoreId], references: [id])
+  payment         Payment?
+  history         OrderHistory[]
+  stockJournals   StockJournal[]
+  discountUsages  DiscountUsage[]
+  voucherUsages   VoucherUsage[]
 
   @@index([userId])
   @@index([orderStatus])
   @@index([paymentStatus])
-  @@index([shippingWarehouseId])
+  @@index([shippingStoreId])
   @@map("orders")
 }
 
 model OrderItem {
-  id                 String          @id @default(uuid())
-  orderId            String
-  productVariantId   String
-  
-  // Snapshot saat order
-  sku                String
-  productName        String          // Snapshot nama
-  variantName        String          // Snapshot variant name
-  price              Decimal         @db.Decimal(12,2)
-  quantity           Int
-  subtotal           Decimal         @db.Decimal(12,2)
-  discount           Decimal         @db.Decimal(12,2) @default(0)
-  total              Decimal         @db.Decimal(12,2)
-  
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  id               String @id @default(uuid())
+  orderId          String
+  productVariantId String
 
-  order              Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productVariant     ProductVariant  @relation(fields: [productVariantId], references: [id])
+  // Snapshot saat order
+  sku         String
+  productName String // Snapshot nama
+  variantName String // Snapshot variant name
+  price       Decimal @db.Decimal(12, 2)
+  quantity    Int
+  subtotal    Decimal @db.Decimal(12, 2)
+  discount    Decimal @default(0) @db.Decimal(12, 2)
+  total       Decimal @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
 
   @@index([orderId])
   @@index([productVariantId])
@@ -624,101 +582,98 @@ model OrderItem {
 }
 
 model Payment {
-  id           String        @id @default(uuid())
-  orderId      String        @unique
-  method       PaymentMethod
-  status       PaymentStatus @default(PENDING)
-  gatewayData  Json?
-  amount       Decimal       @db.Decimal(12,2)
-  currency     String        @default("IDR")
-  paidAt       DateTime?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id          String        @id @default(uuid())
+  orderId     String        @unique
+  method      PaymentMethod
+  status      PaymentStatus @default(PENDING)
+  gatewayData Json?
+  amount      Decimal       @db.Decimal(12, 2)
+  currency    String        @default("IDR")
+  paidAt      DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  proofs       PaymentProof[]
+  order  Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  proofs PaymentProof[]
 
   @@index([orderId])
   @@map("payments")
 }
 
 model PaymentProof {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   paymentId    String
   uploadedById String
   fileName     String
   mimeType     String
   sizeBytes    Int
   url          String
-  verified     Boolean  @default(false)
+  verified     Boolean   @default(false)
   verifiedBy   String?
   verifiedAt   DateTime?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
-  payment      Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  payment    Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  uploadedBy User    @relation(fields: [uploadedById], references: [id])
 
   @@index([paymentId])
   @@map("payment_proofs")
 }
 
 model OrderHistory {
-  id         String      @id @default(uuid())
+  id         String       @id @default(uuid())
   orderId    String
   fromStatus OrderStatus?
   toStatus   OrderStatus
   note       String?
   createdBy  String?
-  createdAt  DateTime    @default(now())
+  createdAt  DateTime     @default(now())
 
-  order      Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@map("order_histories")
 }
 
-// Record aplikasi discount pada order
 model DiscountUsage {
-  id                 String             @id @default(uuid())
-  orderId            String
-  discountId         String
-  
+  id         String @id @default(uuid())
+  orderId    String
+  discountId String
+
   // Snapshot
-  discountType       DiscountType
-  discountValueType  DiscountValueType
-  discountValue      Decimal            @db.Decimal(12, 2)
-  discountAmount     Decimal            @db.Decimal(12, 2)
-  
-  createdAt          DateTime           @default(now())
-  
-  order              Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  discount           Discount           @relation(fields: [discountId], references: [id])
-  
+  discountType      DiscountType
+  discountValueType DiscountValueType
+  discountValue     Decimal           @db.Decimal(12, 2)
+  discountAmount    Decimal           @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  discount Discount @relation(fields: [discountId], references: [id])
+
   @@index([orderId])
   @@index([discountId])
   @@map("discount_usages")
 }
 
-// Record aplikasi voucher pada order
 model VoucherUsage {
-  id                 String             @id @default(uuid())
-  orderId            String
-  voucherId          String
-  userVoucherId      String?            // Link ke UserVoucher jika dari user voucher
-  
+  id            String  @id @default(uuid())
+  orderId       String
+  voucherId     String
+  userVoucherId String?
+
   // Snapshot
-  voucherCode        String
-  discountType       DiscountValueType
-  discountValue      Decimal            @db.Decimal(12, 2)
-  discountAmount     Decimal            @db.Decimal(12, 2)
-  
-  createdAt          DateTime           @default(now())
-  
-  order              Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  voucher            Voucher            @relation(fields: [voucherId], references: [id])
-  
+  voucherCode    String
+  discountType   VoucherType
+  discountValue  Decimal     @db.Decimal(12, 2)
+  discountAmount Decimal     @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  voucher Voucher @relation(fields: [voucherId], references: [id])
+
   @@index([orderId])
   @@index([voucherId])
   @@map("voucher_usages")
 }
-

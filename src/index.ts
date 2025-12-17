@@ -22,7 +22,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/auth", authRouter);
-app.use("/api/categories", categoryRouter);
+app.use("/categories", categoryRouter);
 
 // error middleware
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
