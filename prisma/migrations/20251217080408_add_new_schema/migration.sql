@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "UserRole" AS ENUM ('USER', 'STORE_ADMIN', 'SUPER_ADMIN');
+CREATE TYPE "UserRole" AS ENUM ('CUSTOMER', 'STORE_ADMIN', 'SUPER_ADMIN');
 
 -- CreateEnum
 CREATE TYPE "TokenType" AS ENUM ('EMAIL_VERIFICATION', 'PASSWORD_RESET');
@@ -14,13 +14,16 @@ CREATE TYPE "DiscountType" AS ENUM ('PRODUCT', 'CART', 'SHIPPING', 'BUY_ONE_GET_
 CREATE TYPE "DiscountValueType" AS ENUM ('PERCENTAGE', 'NOMINAL');
 
 -- CreateEnum
-CREATE TYPE "VoucherType" AS ENUM ('PRODUCT', 'CART', 'SHIPPING');
+CREATE TYPE "VoucherScope" AS ENUM ('PRODUCT', 'CART', 'SHIPPING');
 
 -- CreateEnum
-CREATE TYPE "OrderStatus" AS ENUM ('PENDING_PAYMENT', 'AWAITING_PAYMENT_PROOF', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'COMPLETED', 'CANCELLED');
+CREATE TYPE "VoucherType" AS ENUM ('PERCENTAGE', 'NOMINAL');
 
 -- CreateEnum
-CREATE TYPE "PaymentMethod" AS ENUM ('MANUAL_TRANSFER', 'PAYMENT_GATEWAY', 'COD');
+CREATE TYPE "OrderStatus" AS ENUM ('PENDING_PAYMENT', 'AWAITING_PAYMENT_PROOF', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'COMPLETED', 'CANCELED');
+
+-- CreateEnum
+CREATE TYPE "PaymentMethod" AS ENUM ('MANUAL_TRANSFER', 'PAYMENT_GATEWAY');
 
 -- CreateEnum
 CREATE TYPE "PaymentStatus" AS ENUM ('UNPAID', 'PENDING', 'PAID', 'FAILED', 'REFUNDED');
@@ -33,14 +36,15 @@ CREATE TABLE "users" (
     "name" TEXT NOT NULL,
     "phone" TEXT,
     "profileImage" TEXT,
-    "role" "UserRole" NOT NULL DEFAULT 'USER',
+    "role" "UserRole" NOT NULL DEFAULT 'CUSTOMER',
     "isVerified" BOOLEAN NOT NULL DEFAULT false,
     "referralCode" TEXT NOT NULL,
     "referredById" TEXT,
-    "provider" TEXT,
+    "provider" TEXT NOT NULL DEFAULT 'credential',
     "providerId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -71,6 +75,7 @@ CREATE TABLE "addresses" (
     "district" TEXT NOT NULL,
     "province" TEXT NOT NULL,
     "postalCode" TEXT NOT NULL,
+    "addressLine" TEXT NOT NULL,
     "latitude" DOUBLE PRECISION NOT NULL,
     "longitude" DOUBLE PRECISION NOT NULL,
     "notes" TEXT,
@@ -82,25 +87,14 @@ CREATE TABLE "addresses" (
 );
 
 -- CreateTable
-CREATE TABLE "shipping_methods" (
-    "id" TEXT NOT NULL,
-    "courier" TEXT NOT NULL,
-    "service" TEXT NOT NULL,
-    "description" TEXT NOT NULL,
-    "estimatedDays" TEXT NOT NULL,
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "shipping_methods_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "categories" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "description" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
 
     CONSTRAINT "categories_pkey" PRIMARY KEY ("id")
 );
@@ -135,9 +129,10 @@ CREATE TABLE "product_variants" (
     "productId" TEXT NOT NULL,
     "sku" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
     "color" TEXT,
     "size" TEXT,
-    "weight" DOUBLE PRECISION,
+    "weight" INTEGER NOT NULL DEFAULT 0,
     "price" DECIMAL(12,2) NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -147,61 +142,56 @@ CREATE TABLE "product_variants" (
 );
 
 -- CreateTable
-CREATE TABLE "warehouses" (
+CREATE TABLE "stores" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "code" TEXT NOT NULL,
-    "street" TEXT NOT NULL,
+    "address" TEXT NOT NULL,
     "city" TEXT NOT NULL,
-    "district" TEXT,
     "province" TEXT NOT NULL,
-    "postalCode" TEXT,
+    "postalCode" TEXT NOT NULL,
     "latitude" DOUBLE PRECISION NOT NULL,
     "longitude" DOUBLE PRECISION NOT NULL,
-    "maxServiceRadius" DOUBLE PRECISION NOT NULL DEFAULT 10.0,
+    "phone" TEXT,
+    "maxServiceRadius" DOUBLE PRECISION NOT NULL DEFAULT 10,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "warehouses_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "stores_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "user_warehouses" (
+CREATE TABLE "user_stores" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
-    "warehouseId" TEXT NOT NULL,
-    "assignedBy" TEXT NOT NULL,
-    "assignedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "storeId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "user_warehouses_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "user_stores_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "inventories" (
-    "id" TEXT NOT NULL,
+CREATE TABLE "inventory" (
     "productVariantId" TEXT NOT NULL,
-    "warehouseId" TEXT NOT NULL,
+    "storeId" TEXT NOT NULL,
     "quantity" INTEGER NOT NULL DEFAULT 0,
     "reserved" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "inventories_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "inventory_pkey" PRIMARY KEY ("productVariantId","storeId")
 );
 
 -- CreateTable
 CREATE TABLE "stock_journals" (
     "id" TEXT NOT NULL,
     "productVariantId" TEXT NOT NULL,
-    "warehouseId" TEXT NOT NULL,
+    "storeId" TEXT NOT NULL,
     "type" "StockJournalType" NOT NULL,
     "quantity" INTEGER NOT NULL,
     "stockBefore" INTEGER NOT NULL,
     "stockAfter" INTEGER NOT NULL,
-    "referenceNo" TEXT NOT NULL,
+    "referenceNo" TEXT,
     "reason" TEXT NOT NULL,
     "notes" TEXT,
     "relatedOrderId" TEXT,
@@ -217,7 +207,7 @@ CREATE TABLE "discounts" (
     "name" TEXT NOT NULL,
     "description" TEXT,
     "type" "DiscountType" NOT NULL,
-    "discountType" "DiscountValueType" NOT NULL,
+    "discountValueType" "DiscountValueType" NOT NULL,
     "discountValue" DECIMAL(12,2) NOT NULL,
     "minPurchase" DECIMAL(12,2),
     "maxDiscount" DECIMAL(12,2),
@@ -248,8 +238,8 @@ CREATE TABLE "vouchers" (
     "code" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
-    "type" "VoucherType" NOT NULL,
-    "discountType" "DiscountValueType" NOT NULL,
+    "scope" "VoucherScope" NOT NULL,
+    "discountType" "VoucherType" NOT NULL,
     "discountValue" DECIMAL(12,2) NOT NULL,
     "minPurchase" DECIMAL(12,2),
     "maxDiscount" DECIMAL(12,2),
@@ -282,6 +272,7 @@ CREATE TABLE "user_vouchers" (
 CREATE TABLE "carts" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
+    "storeId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -307,10 +298,13 @@ CREATE TABLE "orders" (
     "userId" TEXT NOT NULL,
     "orderNumber" TEXT NOT NULL,
     "shippingAddressId" TEXT NOT NULL,
-    "shippingWarehouseId" TEXT NOT NULL,
-    "shippingMethodId" TEXT NOT NULL,
-    "subtotal" DECIMAL(12,2) NOT NULL,
+    "shippingStoreId" TEXT NOT NULL,
+    "shippingCourier" TEXT NOT NULL,
+    "shippingService" TEXT NOT NULL,
+    "shippingDescription" TEXT NOT NULL,
+    "shippingEstimate" TEXT NOT NULL,
     "shippingFee" DECIMAL(12,2) NOT NULL,
+    "subtotal" DECIMAL(12,2) NOT NULL,
     "tax" DECIMAL(12,2) NOT NULL DEFAULT 0,
     "totalDiscount" DECIMAL(12,2) NOT NULL DEFAULT 0,
     "total" DECIMAL(12,2) NOT NULL,
@@ -414,7 +408,7 @@ CREATE TABLE "voucher_usages" (
     "voucherId" TEXT NOT NULL,
     "userVoucherId" TEXT,
     "voucherCode" TEXT NOT NULL,
-    "discountType" "DiscountValueType" NOT NULL,
+    "discountType" "VoucherType" NOT NULL,
     "discountValue" DECIMAL(12,2) NOT NULL,
     "discountAmount" DECIMAL(12,2) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -453,13 +447,19 @@ CREATE INDEX "addresses_userId_idx" ON "addresses"("userId");
 CREATE INDEX "addresses_latitude_longitude_idx" ON "addresses"("latitude", "longitude");
 
 -- CreateIndex
-CREATE INDEX "shipping_methods_isActive_idx" ON "shipping_methods"("isActive");
+CREATE UNIQUE INDEX "addresses_userId_label_key" ON "addresses"("userId", "label");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "shipping_methods_courier_service_key" ON "shipping_methods"("courier", "service");
+CREATE UNIQUE INDEX "addresses_userId_isPrimary_key" ON "addresses"("userId", "isPrimary");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "categories_name_key" ON "categories"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "categories_slug_key" ON "categories"("slug");
+
+-- CreateIndex
+CREATE INDEX "categories_slug_idx" ON "categories"("slug");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "products_name_key" ON "products"("name");
@@ -477,43 +477,55 @@ CREATE INDEX "product_images_productId_idx" ON "product_images"("productId");
 CREATE UNIQUE INDEX "product_variants_sku_key" ON "product_variants"("sku");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "product_variants_slug_key" ON "product_variants"("slug");
+
+-- CreateIndex
 CREATE INDEX "product_variants_productId_idx" ON "product_variants"("productId");
 
 -- CreateIndex
 CREATE INDEX "product_variants_sku_idx" ON "product_variants"("sku");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "warehouses_code_key" ON "warehouses"("code");
+CREATE INDEX "product_variants_slug_idx" ON "product_variants"("slug");
 
 -- CreateIndex
-CREATE INDEX "warehouses_latitude_longitude_idx" ON "warehouses"("latitude", "longitude");
+CREATE INDEX "product_variants_isActive_idx" ON "product_variants"("isActive");
 
 -- CreateIndex
-CREATE INDEX "warehouses_isActive_idx" ON "warehouses"("isActive");
+CREATE UNIQUE INDEX "stores_name_key" ON "stores"("name");
 
 -- CreateIndex
-CREATE INDEX "user_warehouses_userId_idx" ON "user_warehouses"("userId");
+CREATE INDEX "stores_city_idx" ON "stores"("city");
 
 -- CreateIndex
-CREATE INDEX "user_warehouses_warehouseId_idx" ON "user_warehouses"("warehouseId");
+CREATE INDEX "stores_latitude_longitude_idx" ON "stores"("latitude", "longitude");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "user_warehouses_userId_warehouseId_key" ON "user_warehouses"("userId", "warehouseId");
+CREATE INDEX "stores_isActive_idx" ON "stores"("isActive");
 
 -- CreateIndex
-CREATE INDEX "inventories_productVariantId_idx" ON "inventories"("productVariantId");
+CREATE INDEX "user_stores_userId_idx" ON "user_stores"("userId");
 
 -- CreateIndex
-CREATE INDEX "inventories_warehouseId_idx" ON "inventories"("warehouseId");
+CREATE INDEX "user_stores_storeId_idx" ON "user_stores"("storeId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "inventories_productVariantId_warehouseId_key" ON "inventories"("productVariantId", "warehouseId");
+CREATE UNIQUE INDEX "user_stores_userId_storeId_key" ON "user_stores"("userId", "storeId");
+
+-- CreateIndex
+CREATE INDEX "inventory_storeId_idx" ON "inventory"("storeId");
+
+-- CreateIndex
+CREATE INDEX "inventory_productVariantId_idx" ON "inventory"("productVariantId");
 
 -- CreateIndex
 CREATE INDEX "stock_journals_productVariantId_idx" ON "stock_journals"("productVariantId");
 
 -- CreateIndex
-CREATE INDEX "stock_journals_warehouseId_idx" ON "stock_journals"("warehouseId");
+CREATE INDEX "stock_journals_storeId_idx" ON "stock_journals"("storeId");
+
+-- CreateIndex
+CREATE INDEX "stock_journals_type_idx" ON "stock_journals"("type");
 
 -- CreateIndex
 CREATE INDEX "stock_journals_createdAt_idx" ON "stock_journals"("createdAt");
@@ -558,7 +570,13 @@ CREATE INDEX "user_vouchers_voucherId_idx" ON "user_vouchers"("voucherId");
 CREATE INDEX "user_vouchers_isUsed_idx" ON "user_vouchers"("isUsed");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "carts_userId_key" ON "carts"("userId");
+
+-- CreateIndex
 CREATE INDEX "carts_userId_idx" ON "carts"("userId");
+
+-- CreateIndex
+CREATE INDEX "carts_storeId_idx" ON "carts"("storeId");
 
 -- CreateIndex
 CREATE INDEX "cart_items_cartId_idx" ON "cart_items"("cartId");
@@ -582,7 +600,7 @@ CREATE INDEX "orders_orderStatus_idx" ON "orders"("orderStatus");
 CREATE INDEX "orders_paymentStatus_idx" ON "orders"("paymentStatus");
 
 -- CreateIndex
-CREATE INDEX "orders_shippingWarehouseId_idx" ON "orders"("shippingWarehouseId");
+CREATE INDEX "orders_shippingStoreId_idx" ON "orders"("shippingStoreId");
 
 -- CreateIndex
 CREATE INDEX "order_items_orderId_idx" ON "order_items"("orderId");
@@ -633,22 +651,22 @@ ALTER TABLE "product_images" ADD CONSTRAINT "product_images_productId_fkey" FORE
 ALTER TABLE "product_variants" ADD CONSTRAINT "product_variants_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "user_warehouses" ADD CONSTRAINT "user_warehouses_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "user_stores" ADD CONSTRAINT "user_stores_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "user_warehouses" ADD CONSTRAINT "user_warehouses_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "warehouses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "user_stores" ADD CONSTRAINT "user_stores_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "stores"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "inventories" ADD CONSTRAINT "inventories_productVariantId_fkey" FOREIGN KEY ("productVariantId") REFERENCES "product_variants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "inventory" ADD CONSTRAINT "inventory_productVariantId_fkey" FOREIGN KEY ("productVariantId") REFERENCES "product_variants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "inventories" ADD CONSTRAINT "inventories_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "warehouses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "inventory" ADD CONSTRAINT "inventory_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "stores"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "stock_journals" ADD CONSTRAINT "stock_journals_productVariantId_fkey" FOREIGN KEY ("productVariantId") REFERENCES "product_variants"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "stock_journals" ADD CONSTRAINT "stock_journals_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "warehouses"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "stock_journals" ADD CONSTRAINT "stock_journals_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "stores"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "stock_journals" ADD CONSTRAINT "stock_journals_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -672,6 +690,9 @@ ALTER TABLE "user_vouchers" ADD CONSTRAINT "user_vouchers_voucherId_fkey" FOREIG
 ALTER TABLE "carts" ADD CONSTRAINT "carts_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "carts" ADD CONSTRAINT "carts_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "stores"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "cart_items" ADD CONSTRAINT "cart_items_cartId_fkey" FOREIGN KEY ("cartId") REFERENCES "carts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -684,10 +705,7 @@ ALTER TABLE "orders" ADD CONSTRAINT "orders_userId_fkey" FOREIGN KEY ("userId") 
 ALTER TABLE "orders" ADD CONSTRAINT "orders_shippingAddressId_fkey" FOREIGN KEY ("shippingAddressId") REFERENCES "addresses"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "orders" ADD CONSTRAINT "orders_shippingWarehouseId_fkey" FOREIGN KEY ("shippingWarehouseId") REFERENCES "warehouses"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "orders" ADD CONSTRAINT "orders_shippingMethodId_fkey" FOREIGN KEY ("shippingMethodId") REFERENCES "shipping_methods"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "orders" ADD CONSTRAINT "orders_shippingStoreId_fkey" FOREIGN KEY ("shippingStoreId") REFERENCES "stores"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "order_items" ADD CONSTRAINT "order_items_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {register, login, logout, verifyTokenHandler, getDashboard} from "../controllers/auth.controller";
+import {register, login, logout, verifyTokenHandler, getDashboard, getMe} from "../controllers/auth.controller";
 import { verifyToken } from "../middlewares/auth.middleware";
 import { checkRoles } from "../middlewares/checkRole.middleware";
 
@@ -15,5 +15,6 @@ route.get(
   checkRoles(["SUPER_ADMIN", "STORE_ADMIN"]), 
   getDashboard
 );
+route.get("/me", verifyToken, getMe);
 
 export default route;
