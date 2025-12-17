@@ -42,15 +42,6 @@ export async function register(
       },
     });
 
-    if (refOwner) {
-      await prisma.user.update({
-        where: { id: refOwner.id },
-        data: {
-          referralPoints: { increment: 5 },
-        },
-      });
-    }
-
     res.status(201).json({
       message: "Register Success",
       newUser,
@@ -93,14 +84,13 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       }
     );
 
-    // Hapus password sebelum mengirim balik ke FE
     const { password: _, ...userWithoutPassword } = user;
 
     return res
       .status(200)
       .cookie("authToken", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // true hanya di production (https)
+        secure: process.env.NODE_ENV === "production", 
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         maxAge: 60 * 60 * 1000,
       })
@@ -140,4 +130,28 @@ export async function getDashboard(req: Request, res: Response) {
   res.json({
     user: req.user,
   });
+}
+
+export async function getMe(req: Request, res: Response) {
+  const payload = req.user as { userId: string };
+
+  const user = await prisma.user.findUnique({
+    where: { id: payload.userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      phone: true,
+      isVerified: true,
+      profileImage: true,
+      referralCode: true,
+    },
+  });
+
+  if (!user) {
+    return res.status(404).json({ message: "User tidak ditemukan" });
+  }
+
+  return res.status(200).json({ user });
 }

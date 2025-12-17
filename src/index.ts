@@ -5,6 +5,8 @@ import express, { Application, NextFunction, Request, Response } from "express";
 import cookieParser from "cookie-parser";
 import authRouter from "./routers/auth.route";
 import categoryRouter from "./routers/category.route";
+import emailVerifRouter from "./routers/emailVerif.route"
+import updateProfileRouter from "./routers/updateProfile.route"
 
 const PORT = process.env.PORT;
 
@@ -22,6 +24,10 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/auth", authRouter);
+app.use("/api/categories", categoryRouter);
+app.use("/verify", emailVerifRouter);
+app.use("/user", updateProfileRouter);
+
 app.use("/categories", categoryRouter);
 
 // error middleware
