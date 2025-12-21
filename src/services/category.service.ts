@@ -1,10 +1,5 @@
 import prisma from "../prisma";
 
-/**
- * Category Service
- * Business logic untuk Category CRUD operations
- */
-
 class CategoryService {
   /**
    * Get all categories
