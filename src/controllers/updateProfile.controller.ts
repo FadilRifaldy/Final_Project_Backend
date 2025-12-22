@@ -7,11 +7,16 @@ export const updateProfile = async (req: Request, res: Response) => {
     const payload = req.user as { userId: string };
     const userId = payload.userId;
 
-    const { name, email, phone } = req.body;
+    const { name, email, phone, profileImage } = req.body;
 
-    if (!name || !email) {
+    if (
+      name === undefined &&
+      email === undefined &&
+      phone === undefined &&
+      profileImage === undefined
+    ) {
       return res.status(400).json({
-        message: "Nama dan email wajib diisi",
+        message: "Tidak ada data yang diperbarui",
       });
     }
 
@@ -23,7 +28,8 @@ export const updateProfile = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "User tidak ditemukan" });
     }
 
-    const emailChanged = email !== user.email;
+    const emailChanged =
+      email !== undefined && email !== user.email;
 
     if (emailChanged) {
       const emailExists = await prisma.user.findUnique({
@@ -40,10 +46,11 @@ export const updateProfile = async (req: Request, res: Response) => {
     await prisma.user.update({
       where: { id: userId },
       data: {
-        name,
-        email,
-        phone,
-        isVerified: emailChanged ? false : user.isVerified,
+        ...(name !== undefined && { name }),
+        ...(email !== undefined && { email }),
+        ...(phone !== undefined && { phone }),
+        ...(profileImage !== undefined && { profileImage }),
+        ...(emailChanged && { isVerified: false }),
       },
     });
 
@@ -57,14 +64,15 @@ export const updateProfile = async (req: Request, res: Response) => {
 
       await sendVerificationEmail({
         userId,
-        email,
+        email: email!,
         isVerified: false,
       });
 
       res.clearCookie("authToken", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        sameSite:
+          process.env.NODE_ENV === "production" ? "none" : "lax",
         path: "/",
       });
     }

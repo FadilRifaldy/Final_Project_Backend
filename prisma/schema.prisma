@@ -10,8 +10,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DIRECT_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ============================================
@@ -27,6 +28,7 @@ enum UserRole {
 enum TokenType {
   EMAIL_VERIFICATION
   PASSWORD_RESET
+  PASSWORD_CHANGE
 }
 
 enum StockJournalType {
