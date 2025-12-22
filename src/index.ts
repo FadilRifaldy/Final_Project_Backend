@@ -7,6 +7,8 @@ import authRouter from "./routers/auth.route";
 import categoryRouter from "./routers/category.route";
 import emailVerifRouter from "./routers/emailVerif.route"
 import updateProfileRouter from "./routers/updateProfile.route"
+import setPasswordRouter from "./routers/setPassword.route"
+import cloudinaryRouter from "./routers/cloudinary.route"
 
 const PORT = process.env.PORT;
 
@@ -23,12 +25,12 @@ app.get("/", (req: Request, res: Response) => {
   res.status(200).send("<h1>Online Grocery</h1>");
 });
 
-app.use("/auth", authRouter);
+app.use("/auth", authRouter, setPasswordRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/verify", emailVerifRouter);
 app.use("/user", updateProfileRouter);
-
 app.use("/categories", categoryRouter);
+app.use("/api/cloudinary", cloudinaryRouter);
 
 // error middleware
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
