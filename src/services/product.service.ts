@@ -102,6 +102,11 @@ class ProductService {
           description,
           categoryId,
         },
+        include: {
+          images: {
+            orderBy: { order: "asc" },
+          },
+        },
       });
       return product;
     } catch (error: any) {
@@ -139,6 +144,11 @@ class ProductService {
           name: trimmedName,
           description,
           categoryId,
+        },
+        include: {
+          images: {
+            orderBy: { order: "asc" },
+          },
         },
       });
       return product;
