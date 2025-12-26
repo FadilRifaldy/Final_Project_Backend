@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import { createClient } from "@supabase/supabase-js";
 import prisma from "../prisma";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -20,7 +21,12 @@ export async function register(
       where: { email },
     });
     if (emailExist) {
-      throw new Error("Email already registered");
+      if (emailExist.provider === "GOOGLE") {
+        return res.status(400).json({
+          message:
+            "Email sudah terdaftar dengan Google. Silakan login dengan Google.",
+        });
+      }
     }
 
     // cek referral valid
@@ -39,6 +45,9 @@ export async function register(
         email,
         password: hashedPass,
         referredById: refOwner?.id ?? null,
+        provider: "CREDENTIAL",
+        providerId: null,
+        isVerified: false,
       },
     });
 
@@ -57,8 +66,17 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 
     // Cek user ada atau tidak
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: {
+        email,
+      },
     });
+
+    if (!user || user.provider !== "CREDENTIAL") {
+      return res.status(400).json({
+        message:
+          "Akun ini terdaftar menggunakan Google. Silakan login dengan Google.",
+      });
+    }
 
     if (!user || !user.password) {
       return res.status(404).json({ message: "Email atau Password Salah" });
@@ -77,6 +95,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
         name: user.name,
         email: user.email,
         role: user.role,
+        provider: user.provider,
       },
       process.env.JWT_SECRET!,
       {
@@ -90,7 +109,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       .status(200)
       .cookie("authToken", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", 
+        secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         maxAge: 60 * 60 * 1000,
       })
@@ -143,6 +162,7 @@ export async function getMe(req: Request, res: Response) {
       email: true,
       role: true,
       phone: true,
+      provider: true,
       isVerified: true,
       profileImage: true,
       referralCode: true,
@@ -154,4 +174,74 @@ export async function getMe(req: Request, res: Response) {
   }
 
   return res.status(200).json({ user });
+}
+
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+export async function socialLogin(req: Request, res: Response) {
+  try {
+    const { accessToken } = req.body;
+
+    if (!accessToken) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Access token required" });
+    }
+
+    const { data, error } = await supabase.auth.getUser(accessToken);
+
+    if (error || !data?.user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid OAuth token" });
+    }
+
+    const email = data.user.email!;
+    const name = data.user.user_metadata?.full_name || "User";
+
+    let user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email,
+          name,
+          isVerified: true, 
+          role: "CUSTOMER",
+          provider: "GOOGLE",
+          providerId: data.user.id,
+        },
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        provider: user.provider,
+      },
+      process.env.JWT_SECRET!,
+      { expiresIn: "7d" }
+    );
+
+    res.cookie("authToken", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+    });
+
+    return res.json({
+      success: true,
+      message: "Login Google berhasil",
+      user,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
 }

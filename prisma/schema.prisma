@@ -31,6 +31,11 @@ enum TokenType {
   PASSWORD_CHANGE
 }
 
+enum AuthProvider {
+  CREDENTIAL
+  GOOGLE
+}
+
 enum StockJournalType {
   IN // Penambahan stock (Purchase Order, Return, Adjustment)
   OUT // Pengurangan stock (Sales Order, Damaged, Adjustment)
@@ -99,8 +104,8 @@ model User {
   referredById String?
 
   // Social Login
-  provider   String  @default("credential") // 'google', 'facebook', 'credential'
-  providerId String? // ID dari provider
+  provider     AuthProvider  @default(CREDENTIAL)
+  providerId   String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -118,6 +123,7 @@ model User {
   paymentProofs      PaymentProof[] // Bukti transfer yang diupload
   userVouchers       UserVoucher[] // Voucher yang dimiliki user
 
+  @@unique([provider, providerId])
   @@index([email])
   @@index([referralCode])
   @@index([role])

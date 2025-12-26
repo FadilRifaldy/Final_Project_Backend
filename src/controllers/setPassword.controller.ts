@@ -104,6 +104,12 @@ export async function confirmPassword(req: Request, res: Response) {
         });
       }
 
+      if (user.provider !== "CREDENTIAL") {
+        return res.status(400).json({
+          message: "Akun Google tidak memiliki password",
+        });
+      }
+
       const isOldPasswordValid = await bcrypt.compare(
         oldPassword,
         user.password

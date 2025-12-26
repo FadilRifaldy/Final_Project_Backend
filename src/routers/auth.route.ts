@@ -2,6 +2,7 @@ import { Router } from "express";
 import {register, login, logout, verifyTokenHandler, getDashboard, getMe} from "../controllers/auth.controller";
 import { verifyToken } from "../middlewares/auth.middleware";
 import { checkRoles } from "../middlewares/checkRole.middleware";
+import { socialLogin } from "../controllers/auth.controller";
 
 const route: Router = Router();
 
@@ -16,5 +17,6 @@ route.get(
   getDashboard
 );
 route.get("/me", verifyToken, getMe);
+route.post("/social-login", socialLogin);
 
 export default route;
