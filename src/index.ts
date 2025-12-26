@@ -10,6 +10,8 @@ import updateProfileRouter from "./routers/updateProfile.route"
 import setPasswordRouter from "./routers/setPassword.route"
 import cloudinaryRouter from "./routers/cloudinary.route"
 import productRouter from "./routers/product.route";
+import variantRouter from "./routers/productVariant.route";
+import productImageRouter from "./routers/productImage.route";
 
 const PORT = process.env.PORT;
 
@@ -28,7 +30,8 @@ app.get("/", (req: Request, res: Response) => {
 
 app.use("/auth", authRouter, setPasswordRouter);
 app.use("/api/categories", categoryRouter);
-app.use("/api/products", productRouter);
+app.use("/api/products", productRouter, productImageRouter);  // productImageRouter untuk handle /:productId/images
+app.use("/api/products/var", variantRouter);
 app.use("/verify", emailVerifRouter);
 app.use("/user", updateProfileRouter);
 app.use("/categories", categoryRouter);
