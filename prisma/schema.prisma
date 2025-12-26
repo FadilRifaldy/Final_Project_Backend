@@ -104,8 +104,8 @@ model User {
   referredById String?
 
   // Social Login
-  provider   AuthProvider @default(CREDENTIAL) // 'google', 'facebook', 'credential'
-  providerId String? // ID dari provider
+  provider     AuthProvider  @default(CREDENTIAL)
+  providerId   String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -123,6 +123,7 @@ model User {
   paymentProofs      PaymentProof[] // Bukti transfer yang diupload
   userVouchers       UserVoucher[] // Voucher yang dimiliki user
 
+  @@unique([provider, providerId])
   @@index([email])
   @@index([referralCode])
   @@index([role])

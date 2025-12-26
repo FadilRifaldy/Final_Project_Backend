@@ -88,6 +88,13 @@ export async function verifyEmail(req: Request, res: Response) {
     return res.status(400).json({ message: "Token expired" });
   }
 
+  if (record.user.provider === "GOOGLE") {
+  return res.status(400).json({
+    message: "Email tidak dapat diubah untuk akun Google",
+  });
+}
+
+
   await prisma.$transaction([
     prisma.user.update({
       where: { id: record.userId },
