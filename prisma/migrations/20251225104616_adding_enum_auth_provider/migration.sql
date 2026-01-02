@@ -5,7 +5,12 @@
 
 */
 -- CreateEnum
-CREATE TYPE "AuthProvider" AS ENUM ('CREDENTIAL', 'GOOGLE');
+DO $$ BEGIN
+  CREATE TYPE "AuthProvider" AS ENUM ('GOOGLE', 'EMAIL');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
 
 -- AlterTable
 ALTER TABLE "users" DROP COLUMN "provider",
