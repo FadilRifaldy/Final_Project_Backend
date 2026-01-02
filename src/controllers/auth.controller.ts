@@ -225,7 +225,7 @@ export async function socialLogin(req: Request, res: Response) {
         provider: user.provider,
       },
       process.env.JWT_SECRET!,
-      { expiresIn: "7d" }
+      { expiresIn: "1h" }
     );
 
     res.cookie("authToken", token, {

@@ -179,7 +179,6 @@ model Address {
   orders Order[] // Order yang menggunakan address ini
 
   @@unique([userId, label])
-  @@unique([userId, isPrimary], name: "unique_user_primary")
   @@index([userId])
   @@index([latitude, longitude])
   @@map("addresses")
