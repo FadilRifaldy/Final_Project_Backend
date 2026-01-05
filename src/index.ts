@@ -12,6 +12,8 @@ import cloudinaryRouter from "./routers/cloudinary.route"
 import productRouter from "./routers/product.route";
 import variantRouter from "./routers/productVariant.route";
 import productImageRouter from "./routers/productImage.route";
+import stockJournalRouter from "./routers/stockJournal.route";
+import inventoryRouter from "./routers/inventory.route";
 import addressRoutes from "./routers/address.route"
 
 const PORT = process.env.PORT;
@@ -34,6 +36,8 @@ app.use("/addresses", addressRoutes)
 app.use("/api/categories", categoryRouter);
 app.use("/api/products", productRouter, productImageRouter);  // productImageRouter untuk handle /:productId/images
 app.use("/api/products/var", variantRouter);
+app.use("/api/stock-journal", stockJournalRouter);
+app.use("/api/inventory", inventoryRouter);
 app.use("/verify", emailVerifRouter);
 app.use("/user", updateProfileRouter);
 app.use("/categories", categoryRouter);
