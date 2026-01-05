@@ -14,6 +14,7 @@ import variantRouter from "./routers/productVariant.route";
 import productImageRouter from "./routers/productImage.route";
 import stockJournalRouter from "./routers/stockJournal.route";
 import inventoryRouter from "./routers/inventory.route";
+import addressRoutes from "./routers/address.route"
 
 const PORT = process.env.PORT;
 
@@ -31,6 +32,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/auth", authRouter, setPasswordRouter);
+app.use("/addresses", addressRoutes)
 app.use("/api/categories", categoryRouter);
 app.use("/api/products", productRouter, productImageRouter);  // productImageRouter untuk handle /:productId/images
 app.use("/api/products/var", variantRouter);
