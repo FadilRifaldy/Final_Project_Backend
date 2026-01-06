@@ -1,8 +1,11 @@
 import { Router } from "express";
-import { createStore } from "../controllers/store.controller";
+import { createStore, getStores } from "../controllers/store.controller";
+import { verifyToken } from "../middlewares/auth.middleware";
+import { checkRoles } from "../middlewares/checkRole.middleware";
 
 const router = Router();
 
-router.post("/", createStore);
+router.get("/get-stores", getStores);
+router.post("/create-store", verifyToken, checkRoles(["SUPER_ADMIN", "STORE_ADMIN"]), createStore);
 
 export default router;
