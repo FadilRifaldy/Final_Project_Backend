@@ -1,11 +1,36 @@
 import { Router } from "express";
-import { createStore, getStores } from "../controllers/store.controller";
+import {
+  createStore,
+  getStores,
+  updateStore,
+  deleteStore,
+} from "../controllers/store.controller";
 import { verifyToken } from "../middlewares/auth.middleware";
 import { checkRoles } from "../middlewares/checkRole.middleware";
 
 const router = Router();
 
-router.get("/get-stores", getStores);
-router.post("/create-store", verifyToken, checkRoles(["SUPER_ADMIN", "STORE_ADMIN"]), createStore);
+router.get("/", getStores);
+
+router.post(
+  "/create",
+  verifyToken,
+  checkRoles(["SUPER_ADMIN"]),
+  createStore
+);
+
+router.put(
+  "/update/:id",
+  verifyToken,
+  checkRoles(["SUPER_ADMIN"]),
+  updateStore
+);
+
+router.delete(
+  "/delete/:id",
+  verifyToken,
+  checkRoles(["SUPER_ADMIN"]),
+  deleteStore
+);
 
 export default router;
