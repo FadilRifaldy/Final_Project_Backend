@@ -17,7 +17,7 @@ class ProductVariantService {
             throw new Error("Product not found")
         }
 
-        // get all variant
+        // get all variant dengan images
         const variants = await prisma.productVariant.findMany({
             where: {
                 productId,
@@ -33,6 +33,15 @@ class ProductVariantService {
                         name: true,
                         description: true
                     }
+                },
+                assignedImages: {
+                    include: {
+                        image: true
+                    },
+                    orderBy: [
+                        { isPrimary: "desc" },
+                        { createdAt: "asc" }
+                    ]
                 }
             }
         })
