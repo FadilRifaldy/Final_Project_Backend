@@ -49,3 +49,25 @@ export async function createStore(req: Request, res: Response) {
     });
   }
 }
+
+export async function getStores(req: Request, res: Response) {
+  try {
+    const stores = await prisma.store.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: stores,
+    });
+  } catch (error) {
+    console.error("GET STORES ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Gagal mengambil data store",
+    });
+  }
+}
