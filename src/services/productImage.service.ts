@@ -31,26 +31,60 @@ class ProductImageService {
             throw new Error("Product not found")
         }
 
-        // upload ke cloudinareeh
-        const uploadResults = await Promise.all(
-            files.map(file => this.uploadToCloudinary(file.buffer))
-        )
+        console.log(`[ProductImageService] Starting upload for ${files.length} files`);
 
-        // save ke database lewat prisma atomic txc
+        // Upload ke cloudinary dengan individual error handling
+        const uploadResults: Array<{ success: boolean; result?: any; error?: any; index: number }> = [];
+
+        for (let i = 0; i < files.length; i++) {
+            try {
+                console.log(`[ProductImageService] Uploading file ${i + 1}/${files.length}`);
+                const result = await this.uploadToCloudinary(files[i].buffer);
+                uploadResults.push({ success: true, result, index: i });
+                console.log(`[ProductImageService] File ${i + 1} uploaded successfully: ${result.secure_url}`);
+            } catch (error) {
+                console.error(`[ProductImageService] Failed to upload file ${i + 1}:`, error);
+                uploadResults.push({ success: false, error, index: i });
+            }
+        }
+
+        // Filter hanya yang berhasil
+        const successfulUploads = uploadResults.filter(r => r.success);
+
+        if (successfulUploads.length === 0) {
+            throw new Error("All image uploads failed");
+        }
+
+        console.log(`[ProductImageService] ${successfulUploads.length}/${files.length} files uploaded successfully`);
+
+        // Save ke database lewat prisma atomic transaction
         try {
             const images = await prisma.$transaction(
-                uploadResults.map((result, index) => prisma.productImage.create({
+                successfulUploads.map((upload) => prisma.productImage.create({
                     data: {
                         productId,
-                        imageUrl: result.secure_url,
-                        order: index
+                        imageUrl: upload.result!.secure_url,
+                        order: upload.index
                     }
                 }))
             )
-            return images
+
+            console.log(`[ProductImageService] ${images.length} images saved to database`);
+
+            // Log failed uploads
+            const failedUploads = uploadResults.filter(r => !r.success);
+            if (failedUploads.length > 0) {
+                console.warn(`[ProductImageService] ${failedUploads.length} files failed to upload`);
+            }
+
+            return images;
         } catch (error) {
-            await Promise.all(
-                uploadResults.map(result => cloudinary.uploader.destroy(result.public_id))
+            console.error("[ProductImageService] Database save failed, cleaning up cloudinary uploads");
+            // Cleanup: delete uploaded images from cloudinary
+            await Promise.allSettled(
+                successfulUploads.map(upload =>
+                    cloudinary.uploader.destroy(upload.result!.public_id)
+                )
             )
             throw error
         }
