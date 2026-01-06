@@ -21,6 +21,13 @@ router.get(
     inventoryController.getInventoryByStore
 );
 
+// Get ALL variants with inventory (show stock 0 untuk variants tanpa inventory)
+router.get(
+    "/store/:storeId/all-variants",
+    checkRoles(["SUPER_ADMIN", "STORE_ADMIN"]),
+    inventoryController.getAllVariantsWithInventory
+);
+
 router.get(
     "/variant/:variantId",
     checkRoles(["SUPER_ADMIN"]), // Only Super Admin can see all stores

@@ -32,6 +32,35 @@ class InventoryController {
     }
 
     /**
+     * GET /api/inventory/store/:storeId/all-variants
+     * Get ALL variants dengan inventory data (show stock 0 untuk variants tanpa inventory)
+     */
+    async getAllVariantsWithInventory(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { storeId } = req.params;
+            const page = parseInt(req.query.page as string) || 1;
+            const limit = parseInt(req.query.limit as string) || 20;
+            const search = req.query.search as string;
+
+            const result = await inventoryService.getAllVariantsWithInventory(
+                storeId,
+                page,
+                limit,
+                search
+            );
+
+            res.status(200).json({
+                success: true,
+                data: result.inventories,
+                pagination: result.pagination,
+                message: "All variants with inventory retrieved successfully",
+            });
+        } catch (error: any) {
+            next(error);
+        }
+    }
+
+    /**
      * GET /api/inventory/variant/:variantId
      * Get inventory untuk variant di semua store (Super Admin only)
      */

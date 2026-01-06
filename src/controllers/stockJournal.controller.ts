@@ -20,7 +20,7 @@ class StockJournalController {
             }
 
             // Get user ID from authenticated user (dari middleware verifyToken)
-            const userId = (req as any).user?.id;
+            const userId = (req as any).user?.userId;
             if (!userId) {
                 return res.status(401).json({
                     success: false,
@@ -65,7 +65,7 @@ class StockJournalController {
             }
 
             // Get user ID from authenticated user
-            const userId = (req as any).user?.id;
+            const userId = (req as any).user?.userId;
             if (!userId) {
                 return res.status(401).json({
                     success: false,

@@ -87,6 +87,119 @@ class InventoryService {
     }
 
     /**
+     * Get ALL product variants dengan inventory data (show stock 0 jika belum ada inventory)
+     * Untuk inventory management page - show semua variants
+     */
+    async getAllVariantsWithInventory(
+        storeId: string,
+        page: number = 1,
+        limit: number = 20,
+        search?: string
+    ) {
+        const skip = (page - 1) * limit;
+
+        // Build where clause untuk variants
+        const variantWhere: any = {
+            isActive: true,
+        };
+
+        // Search by product name, variant name, or SKU
+        if (search && search.trim().length > 0) {
+            variantWhere.OR = [
+                { name: { contains: search, mode: "insensitive" } },
+                { sku: { contains: search, mode: "insensitive" } },
+                {
+                    product: {
+                        name: { contains: search, mode: "insensitive" },
+                    },
+                },
+            ];
+        }
+
+        // Get all active variants with pagination
+        const [variants, totalItems] = await Promise.all([
+            prisma.productVariant.findMany({
+                where: variantWhere,
+                skip,
+                take: limit,
+                orderBy: {
+                    createdAt: "desc",
+                },
+                include: {
+                    product: {
+                        include: {
+                            category: true,
+                            images: {
+                                take: 1,
+                                orderBy: { order: "asc" },
+                            },
+                        },
+                    },
+                    inventory: {
+                        where: {
+                            storeId,
+                        },
+                    },
+                },
+            }),
+            prisma.productVariant.count({ where: variantWhere }),
+        ]);
+
+        const totalPages = Math.ceil(totalItems / limit);
+
+        // Transform to inventory-like structure
+        const inventoriesWithAvailable = variants.map((variant) => {
+            const inventory = variant.inventory[0]; // Get inventory untuk store ini
+
+            if (inventory) {
+                // Variant sudah punya inventory
+                return {
+                    productVariantId: variant.id,
+                    storeId,
+                    quantity: inventory.quantity,
+                    reserved: inventory.reserved,
+                    available: inventory.quantity - inventory.reserved,
+                    productVariant: {
+                        id: variant.id,
+                        name: variant.name,
+                        sku: variant.sku,
+                        price: variant.price,
+                        product: variant.product,
+                    },
+                };
+            } else {
+                // Variant belum punya inventory - show stock 0
+                return {
+                    productVariantId: variant.id,
+                    storeId,
+                    quantity: 0,
+                    reserved: 0,
+                    available: 0,
+                    productVariant: {
+                        id: variant.id,
+                        name: variant.name,
+                        sku: variant.sku,
+                        price: variant.price,
+                        product: variant.product,
+                    },
+                };
+            }
+        });
+
+        return {
+            inventories: inventoriesWithAvailable,
+            pagination: {
+                page,
+                limit,
+                totalItems,
+                totalPages,
+                hasNext: page < totalPages,
+                hasPrev: page > 1,
+            },
+        };
+    }
+
+    /**
      * Get inventory untuk variant tertentu di semua store (untuk Super Admin)
      */
     async getInventoryByVariant(variantId: string) {
