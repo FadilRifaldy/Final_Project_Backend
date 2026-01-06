@@ -104,8 +104,8 @@ model User {
   referredById String?
 
   // Social Login
-  provider     AuthProvider  @default(CREDENTIAL)
-  providerId   String?
+  provider   AuthProvider @default(CREDENTIAL)
+  providerId String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -232,7 +232,8 @@ model ProductImage {
   createdAt DateTime @default(now())
 
   // Relations
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product          Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  assignedVariants ProductVariantImage[] // Variants yang menggunakan image ini
 
   @@index([productId])
   @@map("product_images")
@@ -258,18 +259,38 @@ model ProductVariant {
   updatedAt DateTime @updatedAt
 
   // Relations
-  product          Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product          Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
   inventory        Inventory[] // Stock per store
   cartItems        CartItem[]
   orderItems       OrderItem[]
   productDiscounts ProductDiscount[]
-  stockJournals    StockJournal[]    @relation("ProductVariantStockJournals")
+  stockJournals    StockJournal[]        @relation("ProductVariantStockJournals")
+  assignedImages   ProductVariantImage[] // Images yang di-assign ke variant ini
 
   @@index([productId])
   @@index([sku])
   @@index([slug])
   @@index([isActive])
   @@map("product_variants")
+}
+
+// Junction table: Assign Product Images to Variants
+// Memungkinkan satu image dipakai multiple variants, dan satu variant punya multiple images
+model ProductVariantImage {
+  id               String   @id @default(uuid())
+  productVariantId String
+  productImageId   String
+  isPrimary        Boolean  @default(false) // Primary image untuk variant (untuk thumbnail)
+  createdAt        DateTime @default(now())
+
+  // Relations
+  variant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  image   ProductImage   @relation(fields: [productImageId], references: [id], onDelete: Cascade)
+
+  @@unique([productVariantId, productImageId]) // Prevent duplicate assignment
+  @@index([productVariantId])
+  @@index([productImageId])
+  @@map("product_variant_images")
 }
 
 // Store (toko fisik dengan inventory sendiri)
