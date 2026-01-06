@@ -22,7 +22,6 @@ class ProductService {
           },
           images: {
             orderBy: { order: "asc" },
-            take: 1, // Ambil primary image saja untuk list
           },
           _count: {
             select: {
