@@ -16,6 +16,7 @@ import productVariantImageRouter from "./routers/productVariantImage.route";
 import stockJournalRouter from "./routers/stockJournal.route";
 import inventoryRouter from "./routers/inventory.route";
 import addressRoutes from "./routers/address.route"
+import storeRoutes from "./routers/store.route"
 
 const PORT = process.env.PORT;
 
@@ -43,6 +44,7 @@ app.use("/verify", emailVerifRouter);
 app.use("/user", updateProfileRouter);
 app.use("/categories", categoryRouter);
 app.use("/api/cloudinary", cloudinaryRouter);
+app.use("/stores", storeRoutes);
 
 // error middleware
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
