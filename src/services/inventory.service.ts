@@ -94,7 +94,10 @@ class InventoryService {
         storeId: string,
         page: number = 1,
         limit: number = 20,
-        search?: string
+        search?: string,
+        categoryId?: string,
+        stockStatus?: string,
+        sortBy?: string
     ) {
         const skip = (page - 1) * limit;
 
@@ -102,6 +105,14 @@ class InventoryService {
         const variantWhere: any = {
             isActive: true,
         };
+
+        // Category filter
+        if (categoryId && categoryId !== 'all') {
+            variantWhere.product = {
+                ...variantWhere.product,
+                categoryId: categoryId,
+            };
+        }
 
         // Search by product name, variant name, or SKU
         if (search && search.trim().length > 0) {
@@ -116,15 +127,33 @@ class InventoryService {
             ];
         }
 
+        // Build orderBy based on sortBy param
+        let orderBy: any = { createdAt: "desc" }; // Default sort
+
+        if (sortBy) {
+            switch (sortBy) {
+                case 'name-asc':
+                    orderBy = { name: "asc" };
+                    break;
+                case 'name-desc':
+                    orderBy = { name: "desc" };
+                    break;
+                case 'updated':
+                    orderBy = { updatedAt: "desc" };
+                    break;
+                // stock-high and stock-low will be sorted after fetching
+                default:
+                    orderBy = { createdAt: "desc" };
+            }
+        }
+
         // Get all active variants with pagination
         const [variants, totalItems] = await Promise.all([
             prisma.productVariant.findMany({
                 where: variantWhere,
                 skip,
                 take: limit,
-                orderBy: {
-                    createdAt: "desc",
-                },
+                orderBy,
                 include: {
                     product: {
                         include: {
@@ -148,7 +177,7 @@ class InventoryService {
         const totalPages = Math.ceil(totalItems / limit);
 
         // Transform to inventory-like structure
-        const inventoriesWithAvailable = variants.map((variant) => {
+        let inventoriesWithAvailable = variants.map((variant) => {
             const inventory = variant.inventory[0]; // Get inventory untuk store ini
 
             if (inventory) {
@@ -185,6 +214,34 @@ class InventoryService {
                 };
             }
         });
+
+        // Filter by stock status (after mapping)
+        if (stockStatus && stockStatus !== 'all') {
+            switch (stockStatus) {
+                case 'in-stock':
+                    inventoriesWithAvailable = inventoriesWithAvailable.filter(
+                        (inv) => inv.quantity > 0
+                    );
+                    break;
+                case 'low-stock':
+                    inventoriesWithAvailable = inventoriesWithAvailable.filter(
+                        (inv) => inv.quantity > 0 && inv.quantity <= 10
+                    );
+                    break;
+                case 'out-of-stock':
+                    inventoriesWithAvailable = inventoriesWithAvailable.filter(
+                        (inv) => inv.quantity === 0
+                    );
+                    break;
+            }
+        }
+
+        // Sort by stock (after filtering)
+        if (sortBy === 'stock-high') {
+            inventoriesWithAvailable.sort((a, b) => b.quantity - a.quantity);
+        } else if (sortBy === 'stock-low') {
+            inventoriesWithAvailable.sort((a, b) => a.quantity - b.quantity);
+        }
 
         return {
             inventories: inventoriesWithAvailable,
