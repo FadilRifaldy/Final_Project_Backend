@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createStore,
   getStores,
+  getStoreById,
   updateStore,
   deleteStore,
 } from "../controllers/store.controller";
@@ -11,6 +12,8 @@ import { checkRoles } from "../middlewares/checkRole.middleware";
 const router = Router();
 
 router.get("/", getStores);
+
+router.get("/:id", getStoreById);
 
 router.post(
   "/create",

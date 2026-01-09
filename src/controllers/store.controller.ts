@@ -81,6 +81,69 @@ export async function getStores(req: Request, res: Response) {
   }
 }
 
+export async function getStoreById(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Store ID is required",
+      });
+    }
+
+    const store = await prisma.store.findUnique({
+      where: { id },
+      include: {
+        userStores: {
+          where: {
+            user: {
+              role: "STORE_ADMIN",
+            },
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+              },
+            },
+          },
+          take: 1,
+        },
+      },
+    });
+
+    if (!store) {
+      return res.status(404).json({
+        success: false,
+        message: "Store not found",
+      });
+    }
+
+    // Format response with admin info
+    const storeWithAdmin = {
+      ...store,
+      admin: store.userStores?.[0]?.user || null,
+      userStores: undefined, // Remove userStores array from response
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: storeWithAdmin,
+    });
+  } catch (error) {
+    console.error("[GET STORE BY ID ERROR]", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to get store details",
+    });
+  }
+}
+
 export async function updateStore(req: Request, res: Response) {
   try {
     const { id } = req.params;
