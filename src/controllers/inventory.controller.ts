@@ -41,12 +41,18 @@ class InventoryController {
             const page = parseInt(req.query.page as string) || 1;
             const limit = parseInt(req.query.limit as string) || 20;
             const search = req.query.search as string;
+            const categoryId = req.query.categoryId as string;
+            const stockStatus = req.query.stockStatus as string;
+            const sortBy = req.query.sortBy as string;
 
             const result = await inventoryService.getAllVariantsWithInventory(
                 storeId,
                 page,
                 limit,
-                search
+                search,
+                categoryId,
+                stockStatus,
+                sortBy
             );
 
             res.status(200).json({

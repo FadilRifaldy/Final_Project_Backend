@@ -196,8 +196,41 @@ export function verifyTokenHandler(req: Request, res: Response) {
 }
 
 export async function getDashboard(req: Request, res: Response) {
+  const payload = req.user as { userId: string };
+
+  const user = await prisma.user.findUnique({
+    where: { id: payload.userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      provider: true,
+      userStores: {
+        select: {
+          storeId: true,
+        },
+        take: 1, // Get first assigned store
+      },
+    },
+  });
+
+  if (!user) {
+    return res.status(404).json({ message: "User tidak ditemukan" });
+  }
+
+  // Extract assignedStoreId from userStores
+  const assignedStoreId = user.userStores[0]?.storeId || null;
+
+  // Remove userStores from response and add assignedStoreId
+  const { userStores, ...userData } = user;
+
   res.json({
-    user: req.user,
+    user: {
+      ...userData,
+      userId: user.id, // Keep userId for backward compatibility
+      assignedStoreId,
+    },
   });
 }
 
@@ -216,6 +249,12 @@ export async function getMe(req: Request, res: Response) {
       isVerified: true,
       profileImage: true,
       referralCode: true,
+      userStores: {
+        select: {
+          storeId: true,
+        },
+        take: 1, // Get first assigned store
+      },
     },
   });
 
@@ -223,7 +262,18 @@ export async function getMe(req: Request, res: Response) {
     return res.status(404).json({ message: "User tidak ditemukan" });
   }
 
-  return res.status(200).json({ user });
+  // Extract assignedStoreId from userStores
+  const assignedStoreId = user.userStores[0]?.storeId || null;
+
+  // Remove userStores from response and add assignedStoreId
+  const { userStores, ...userData } = user;
+
+  return res.status(200).json({
+    user: {
+      ...userData,
+      assignedStoreId,
+    }
+  });
 }
 
 const supabase = createClient(
