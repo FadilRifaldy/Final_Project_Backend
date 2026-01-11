@@ -48,6 +48,7 @@ export async function register(
         provider: "CREDENTIAL",
         providerId: null,
         isVerified: false,
+        role: "CUSTOMER",
       },
     });
 
@@ -60,35 +61,85 @@ export async function register(
   }
 }
 
-export async function login(req: Request, res: Response, next: NextFunction) {
+export async function registerStoreAdmin(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   try {
-    const { email, password } = req.body;
+    const { name, email, password } = req.body;
 
-    // Cek user ada atau tidak
-    const user = await prisma.user.findUnique({
-      where: {
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Field tidak lengkap" });
+    }
+
+    const emailExist = await prisma.user.findUnique({ where: { email } });
+    if (emailExist) {
+      return res.status(400).json({ message: "Email sudah terdaftar" });
+    }
+
+    const hashedPass = await bcrypt.hash(password, 12);
+
+    const user = await prisma.user.create({
+      data: {
+        name,
         email,
+        password: hashedPass,
+        role: "STORE_ADMIN",
+        provider: "CREDENTIAL",
+        isVerified: false,
       },
     });
 
-    if (!user || user.provider !== "CREDENTIAL") {
-      return res.status(400).json({
-        message:
-          "Akun ini terdaftar menggunakan Google. Silakan login dengan Google.",
+    res.status(201).json({
+      message: "Register Store Admin berhasil",
+      user,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function login(req: Request, res: Response, next: NextFunction) {
+  try {
+    res.clearCookie("authToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      path: "/",
+    });
+
+    const { email, password } = req.body;
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return res.status(404).json({ 
+        message: "Email atau Password Salah" 
       });
     }
 
-    if (!user || !user.password) {
-      return res.status(404).json({ message: "Email atau Password Salah" });
+    if (user.provider !== "CREDENTIAL") {
+      return res.status(400).json({
+        message: "Akun ini terdaftar menggunakan Google. Silakan login dengan Google.",
+      });
     }
 
-    // Validasi password
+    if (!user.password) {
+      return res.status(404).json({ 
+        message: "Email atau Password Salah" 
+      });
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(404).json({ message: "Email atau Password Salah" });
+      return res.status(404).json({ 
+        message: "Email atau Password Salah" 
+      });
     }
 
-    // Generate token
     const token = jwt.sign(
       {
         userId: user.id,
@@ -98,9 +149,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
         provider: user.provider,
       },
       process.env.JWT_SECRET!,
-      {
-        expiresIn: "1h",
-      }
+      { expiresIn: "1h" }
     );
 
     const { password: _, ...userWithoutPassword } = user;
@@ -111,6 +160,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        path: "/", 
         maxAge: 60 * 60 * 1000,
       })
       .json({
@@ -232,13 +282,18 @@ const supabase = createClient(
 );
 export async function socialLogin(req: Request, res: Response) {
   try {
-    const { accessToken } = req.body;
+    const { accessToken, role } = req.body as {
+      accessToken?: string;
+      role?: "CUSTOMER" | "STORE_ADMIN";
+    };
 
     if (!accessToken) {
       return res
         .status(400)
         .json({ success: false, message: "Access token required" });
     }
+
+    const userRole = role ?? "CUSTOMER";
 
     const { data, error } = await supabase.auth.getUser(accessToken);
 
@@ -251,17 +306,19 @@ export async function socialLogin(req: Request, res: Response) {
     const email = data.user.email!;
     const name = data.user.user_metadata?.full_name || "User";
 
-    let user = await prisma.user.findUnique({ where: { email } });
+    let user = await prisma.user.findUnique({
+      where: { email },
+    });
 
     if (!user) {
       user = await prisma.user.create({
         data: {
           email,
           name,
-          isVerified: true,
-          role: "CUSTOMER",
+          role: userRole,
           provider: "GOOGLE",
           providerId: data.user.id,
+          isVerified: true,
         },
       });
     }
@@ -281,17 +338,21 @@ export async function socialLogin(req: Request, res: Response) {
     res.cookie("authToken", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       path: "/",
+      maxAge: 60 * 60 * 1000,
     });
 
-    return res.json({
+    return res.status(200).json({
       success: true,
       message: "Login Google berhasil",
       user,
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 }

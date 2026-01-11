@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {register, login, logout, verifyTokenHandler, getDashboard, getMe} from "../controllers/auth.controller";
+import {register, login, logout, verifyTokenHandler, getDashboard, getMe, registerStoreAdmin} from "../controllers/auth.controller";
 import { verifyToken } from "../middlewares/auth.middleware";
 import { checkRoles } from "../middlewares/checkRole.middleware";
 import { socialLogin } from "../controllers/auth.controller";
@@ -7,6 +7,7 @@ import { socialLogin } from "../controllers/auth.controller";
 const route: Router = Router();
 
 route.route("/register").post(register);
+route.route("/register-store").post(registerStoreAdmin)
 route.route("/login").post(login);
 route.route("/logout").post(logout);
 route.get("/verify-token", verifyToken, verifyTokenHandler);
