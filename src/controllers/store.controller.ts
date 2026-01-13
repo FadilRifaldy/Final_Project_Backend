@@ -256,3 +256,127 @@ export async function deleteStore(req: Request, res: Response) {
     });
   }
 }
+
+export async function getStoreProducts(req: Request, res: Response) {
+  try {
+    const { id: storeId } = req.params;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const skip = (page - 1) * limit;
+
+    if (!storeId) {
+      return res.status(400).json({
+        success: false,
+        message: "Store ID is required",
+      });
+    }
+
+    // Check if store exists
+    const store = await prisma.store.findUnique({
+      where: { id: storeId },
+    });
+
+    if (!store) {
+      return res.status(404).json({
+        success: false,
+        message: "Store not found",
+      });
+    }
+
+    // Get products from inventory with their variants
+    const [inventory, total] = await Promise.all([
+      prisma.inventory.findMany({
+        where: {
+          storeId,
+          quantity: { gt: 0 }, // Only products with stock
+        },
+        include: {
+          productVariant: {
+            include: {
+              product: {
+                include: {
+                  category: true,
+                  images: {
+                    orderBy: { order: "asc" },
+                    take: 1,
+                  },
+                },
+              },
+              assignedImages: {
+                where: { isPrimary: true },
+                include: {
+                  image: true,
+                },
+                take: 1,
+              },
+            },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: {
+          updatedAt: "desc",
+        },
+      }),
+      prisma.inventory.count({
+        where: {
+          storeId,
+          quantity: { gt: 0 },
+        },
+      }),
+    ]);
+
+    // Transform data for frontend
+    const products = inventory.map((inv) => {
+      const variant = inv.productVariant;
+      const product = variant.product;
+      
+      // Get primary image from variant or product
+      const primaryImage =
+        variant.assignedImages[0]?.image?.imageUrl ||
+        product.images[0]?.imageUrl ||
+        null;
+
+      return {
+        id: variant.id,
+        productId: product.id,
+        name: product.name,
+        variantName: variant.name,
+        fullName: `${product.name} ${variant.name}`,
+        price: parseFloat(variant.price.toString()),
+        image: primaryImage,
+        stock: inv.quantity,
+        reserved: inv.reserved,
+        availableStock: inv.quantity - inv.reserved,
+        sku: variant.sku,
+        category: product.category.name,
+        categoryId: product.category.id,
+        sold: 0,
+      };
+    });
+
+    const totalPages = Math.ceil(total / limit);
+    const hasNext = page < totalPages;
+    const hasPrev = page > 1;
+
+    return res.status(200).json({
+      success: true,
+      data: products,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNext,
+        hasPrev,
+      },
+    });
+  } catch (error) {
+    console.error("[GET STORE PRODUCTS ERROR]", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to get store products",
+    });
+  }
+}
