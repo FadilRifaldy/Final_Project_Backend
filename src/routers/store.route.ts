@@ -5,6 +5,7 @@ import {
   getStoreById,
   updateStore,
   deleteStore,
+  getStoreProducts
 } from "../controllers/store.controller";
 import { verifyToken } from "../middlewares/auth.middleware";
 import { checkRoles } from "../middlewares/checkRole.middleware";
@@ -14,6 +15,8 @@ const router = Router();
 router.get("/", getStores);
 
 router.get("/:id", getStoreById);
+
+router.get("/:id/products", getStoreProducts);
 
 router.post(
   "/create",
