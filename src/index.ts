@@ -17,6 +17,7 @@ import stockJournalRouter from "./routers/stockJournal.route";
 import inventoryRouter from "./routers/inventory.route";
 import addressRoutes from "./routers/address.route"
 import storeRoutes from "./routers/store.route"
+import discountRouter from "./routers/discount.route"
 
 const PORT = process.env.PORT;
 
@@ -40,6 +41,7 @@ app.use("/api/products", productRouter, productImageRouter);  // productImageRou
 app.use("/api/products/var", variantRouter, productVariantImageRouter); // productVariantImageRouter untuk handle /:variantId/images
 app.use("/api/stock-journal", stockJournalRouter);
 app.use("/api/inventory", inventoryRouter);
+app.use("/api/discounts", discountRouter)
 app.use("/verify", emailVerifRouter);
 app.use("/user", updateProfileRouter);
 app.use("/categories", categoryRouter);
