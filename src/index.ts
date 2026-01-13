@@ -18,6 +18,7 @@ import inventoryRouter from "./routers/inventory.route";
 import addressRoutes from "./routers/address.route"
 import storeRoutes from "./routers/store.route"
 import discountRouter from "./routers/discount.route"
+import assignStoreAdminRoutes from "./routers/assign-store-admin.route"
 
 const PORT = process.env.PORT;
 
@@ -47,6 +48,7 @@ app.use("/user", updateProfileRouter);
 app.use("/categories", categoryRouter);
 app.use("/api/cloudinary", cloudinaryRouter);
 app.use("/stores", storeRoutes);
+app.use("/assign-store-admin", assignStoreAdminRoutes)
 
 // error middleware
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
