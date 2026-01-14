@@ -38,4 +38,11 @@ router.get(
     stockJournalController.getStockJournalById
 );
 
+// GET monthly summary report
+router.get(
+    "/report/monthly-summary",
+    checkRoles(["SUPER_ADMIN", "STORE_ADMIN"]),
+    stockJournalController.getStockJournalMonthlySummary
+);
+
 export default router;

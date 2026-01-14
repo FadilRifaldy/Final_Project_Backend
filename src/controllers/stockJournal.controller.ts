@@ -175,6 +175,69 @@ class StockJournalController {
             next(error);
         }
     }
+
+    /**
+     * GET /api/stock-journal/report/monthly-summary
+     * Get monthly stock summary report (untuk Stock Report requirement)
+     */
+    async getStockJournalMonthlySummary(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { storeId, startDate, endDate } = req.query;
+            const page = parseInt(req.query.page as string) || 1;
+            const limit = parseInt(req.query.limit as string) || 20;
+
+            // Validation
+            if (!storeId || !startDate || !endDate) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Missing required query params: storeId, startDate, endDate",
+                });
+            }
+
+            // Authorization: STORE_ADMIN hanya bisa akses toko mereka sendiri
+            const user = (req as any).user;
+            if (user?.role === "STORE_ADMIN") {
+                // Get user's assigned store
+                const prisma = (await import("../prisma")).default;
+                const userWithStore = await prisma.user.findUnique({
+                    where: { id: user.userId },
+                    include: {
+                        userStores: {
+                            select: { storeId: true },
+                            take: 1,
+                        },
+                    },
+                });
+
+                const assignedStoreId = userWithStore?.userStores[0]?.storeId;
+
+                // Check if trying to access different store
+                if (!assignedStoreId || assignedStoreId !== storeId) {
+                    return res.status(403).json({
+                        success: false,
+                        error: "Forbidden: You can only access your assigned store's reports",
+                    });
+                }
+            }
+
+            const result = await stockJournalService.getStockJournalMonthlySummary(
+                storeId as string,
+                startDate as string,
+                endDate as string,
+                page,
+                limit
+            );
+
+            res.status(200).json({
+                success: true,
+                data: result.summary,
+                pagination: result.pagination,
+                message: "Monthly stock summary retrieved successfully",
+            });
+        } catch (error: any) {
+            next(error);
+        }
+    }
 }
 
 export default new StockJournalController();
