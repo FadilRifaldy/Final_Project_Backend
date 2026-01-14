@@ -5,8 +5,8 @@ import { NextFunction, Request, Response } from "express";
 export const fileUpload = multer({
     storage: multer.memoryStorage(),
     fileFilter: (request, file, cb) => {
-        const allowedTypes = /jpg|jpeg|png|gif/i;
-        const allowedMimeTypes = ["image/jpeg", "image/png", "image/gif"];
+        const allowedTypes = /jpg|jpeg|png|gif|webp/i;
+        const allowedMimeTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
         const extName = path.extname(file.originalname);
 
         const isTypeValid = allowedTypes.test(extName);
@@ -15,11 +15,11 @@ export const fileUpload = multer({
         if (isTypeValid && isMimeTypeValid) {
             cb(null, true);
         } else {
-            cb(new Error("Only JPG, JPEG, PNG, and GIF files are allowed"));
+            cb(new Error("Only JPG, JPEG, PNG, GIF, and WEBP files are allowed"));
         }
     },
     limits: {
-        fileSize: 1024 * 1024
+        fileSize: 5 * 1024 * 1024
     },
 })
 
@@ -36,7 +36,7 @@ export const handleUploadError = (err: Error, req: Request, res: Response, next:
         }
         return res.status(400).json({ message: err.message });
     }
-    if (err.message === "Only JPG, JPEG, PNG, and GIF files are allowed") {
+    if (err.message === "Only JPG, JPEG, PNG, GIF, and WEBP files are allowed") {
         return res.status(400).json({
             success: false,
             message: err.message
