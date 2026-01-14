@@ -28,7 +28,7 @@ router.get(
 router.post(
     "/",
     verifyToken,
-    checkRoles(["SUPER_ADMIN"]),
+    checkRoles(["SUPER_ADMIN", "STORE_ADMIN"]), // Store Admin bisa buat discount untuk store mereka
     discountController.createDiscount
 );
 

@@ -172,5 +172,53 @@ class ProductService {
 
     return deletedProduct;
   }
+
+  async searchVariants(query: string, limit: number = 20) {
+    const variants = await prisma.productVariant.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          {
+            name: {
+              contains: query,
+              mode: 'insensitive',
+            },
+          },
+          {
+            sku: {
+              contains: query,
+              mode: 'insensitive',
+            },
+          },
+          {
+            product: {
+              name: {
+                contains: query,
+                mode: 'insensitive',
+              },
+            },
+          },
+        ],
+      },
+      take: limit,
+      select: {
+        id: true,
+        name: true,
+        sku: true,
+        price: true,
+        product: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+
+    return variants;
+  }
 }
 export default new ProductService();

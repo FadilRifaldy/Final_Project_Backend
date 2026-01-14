@@ -8,7 +8,33 @@ import prisma from "../prisma";
 
 class DiscountService {
     async getAllDiscounts() {
-        const discounts = await prisma.discount.findMany();
+        const discounts = await prisma.discount.findMany({
+            include: {
+                store: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                productDiscounts: {
+                    include: {
+                        productVariant: {
+                            select: {
+                                id: true,
+                                name: true,
+                                price: true,
+                                product: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                    }
+                                }
+                            }
+                        },
+                    }
+                }
+            }
+        });
         return discounts;
     }
 
@@ -63,6 +89,8 @@ class DiscountService {
         productVariantIds?: string[];
         startDate: Date;
         endDate: Date;
+        storeId?: string; // null = global (Super Admin), filled = specific store
+        createdBy: string; // User ID yang membuat
     }) {
         // Validasi 1: Date range
         if (new Date(data.startDate) >= new Date(data.endDate)) {
@@ -115,6 +143,8 @@ class DiscountService {
                     startDate: data.startDate,
                     endDate: data.endDate,
                     isActive: true,
+                    storeId: data.storeId || null, // null = global
+                    createdBy: data.createdBy,
                 },
             });
 

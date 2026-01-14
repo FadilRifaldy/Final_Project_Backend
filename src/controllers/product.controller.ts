@@ -159,6 +159,23 @@ class ProductController {
       next(error);
     }
   }
+
+  async searchVariants(req: Request, res: Response, next: NextFunction) {
+    try {
+      const query = (req.query.q as string) || "";
+      const limit = parseInt(req.query.limit as string) || 20;
+
+      const variants = await productService.searchVariants(query, limit);
+
+      res.status(200).json({
+        success: true,
+        data: variants,
+        message: "Variants retrieved successfully",
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  }
 }
 
 export default new ProductController();

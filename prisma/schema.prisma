@@ -122,6 +122,7 @@ model User {
   stockJournals      StockJournal[] // Stock journals yang dibuat user ini
   paymentProofs      PaymentProof[] // Bukti transfer yang diupload
   userVouchers       UserVoucher[] // Voucher yang dimiliki user
+  discounts          Discount[] // Discounts yang dibuat user ini
 
   @@unique([provider, providerId])
   @@index([email])
@@ -316,6 +317,7 @@ model Store {
   userStores    UserStore[] // Store admins assigned
   stockJournals StockJournal[]
   carts         Cart[]
+  discounts     Discount[] // Discounts untuk store ini
 
   @@index([city])
   @@index([latitude, longitude])
@@ -399,6 +401,11 @@ model Discount {
   discountValueType DiscountValueType
   discountValue     Decimal           @db.Decimal(12, 2)
 
+  // Scope & Ownership
+  // storeId == global (Super Admin), filled = specific store (Store Admin)
+  storeId   String? 
+  createdBy String // User ID yang membuat discount
+
   // Conditions
   minPurchase Decimal? @db.Decimal(12, 2) // Untuk CART discount
   maxDiscount Decimal? @db.Decimal(12, 2) // Max potongan (jika percentage)
@@ -414,11 +421,15 @@ model Discount {
   updatedAt DateTime @updatedAt
 
   // Relations
+  store            Store?            @relation(fields: [storeId], references: [id])
+  creator          User              @relation(fields: [createdBy], references: [id])
   productDiscounts ProductDiscount[] // Link ke products (untuk PRODUCT & BOGO type)
   discountUsages   DiscountUsage[]
 
   @@index([type])
   @@index([isActive])
+  @@index([storeId])
+  @@index([createdBy])
   @@index([startDate, endDate])
   @@map("discounts")
 }

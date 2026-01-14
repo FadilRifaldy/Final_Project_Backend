@@ -30,4 +30,12 @@ router.delete(
     productController.deleteProduct
 );
 
+// Search variants for autocomplete (Admin only)
+router.get(
+    "/variants/search",
+    verifyToken,
+    checkRoles(["SUPER_ADMIN", "STORE_ADMIN"]),
+    productController.searchVariants
+);
+
 export default router;
