@@ -64,14 +64,57 @@ class DiscountController {
     // POST /api/discounts
     async createDiscount(req: Request, res: Response, next: NextFunction) {
         try {
+            // Get user dari auth middleware
+            const user = (req as any).user;
+
+            // Extract userId - handle berbagai struktur token
+            const userId = user?.id || user?.userId || user?.sub;
+            const userRole = user?.role;
+
+            if (!userId) {
+                return res.status(401).json({
+                    success: false,
+                    error: "Unauthorized - User ID not found"
+                });
+            }
+
             // Validasi input dengan Zod
             const validatedData = createDiscountSchema.parse(req.body);
+
+            // Handle storeId berdasarkan role
+            let storeId = validatedData.storeId;
+
+            // Jika Store Admin, harus provide storeId dan harus store yang mereka manage
+            if (userRole === 'STORE_ADMIN') {
+                if (!storeId) {
+                    return res.status(400).json({
+                        success: false,
+                        error: "Store Admin must specify storeId"
+                    });
+                }
+
+                // TODO: Validasi apakah user ini assigned ke store ini
+                // const hasAccess = await prisma.userStore.findFirst({
+                //     where: { userId: userId, storeId }
+                // });
+                // if (!hasAccess) {
+                //     return res.status(403).json({
+                //         success: false,
+                //         error: "You don't have access to this store"
+                //     });
+                // }
+            }
+
+            // Super Admin bisa buat global (storeId = null) atau per store
+            // storeId sudah di-handle dari request body
 
             // Convert dates to Date objects
             const discountData = {
                 ...validatedData,
                 startDate: new Date(validatedData.startDate),
                 endDate: new Date(validatedData.endDate),
+                storeId: storeId,
+                createdBy: userId,
             };
 
             const discount = await DiscountService.createDiscount(discountData);

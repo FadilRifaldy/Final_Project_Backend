@@ -13,6 +13,7 @@ export const createDiscountSchema = z.object({
     productVariantIds: z.array(z.string()).optional(),
     startDate: z.string().or(z.date()),
     endDate: z.string().or(z.date()),
+    storeId: z.string().optional(), // null/undefined = global, filled = specific store
 });
 
 export const updateDiscountSchema = z.object({
