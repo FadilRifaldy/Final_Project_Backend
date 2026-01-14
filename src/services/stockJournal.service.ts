@@ -371,6 +371,86 @@ class StockJournalService {
 
         return journal;
     }
+
+    // get stock journal monthly summary
+    async getStockJournalMonthlySummary(
+        storeId: string,
+        startDate: string,
+        endDate: string,
+        page: number = 1,
+        limit: number = 20
+    ) {
+        // 1. Get semua journal entries di bulan tersebut
+        const journals = await prisma.stockJournal.findMany({
+            where: {
+                storeId,
+                createdAt: {
+                    gte: new Date(startDate),
+                    lte: new Date(endDate),
+                },
+            },
+            include: {
+                productVariant: {
+                    include: {
+                        product: true,
+                    },
+                },
+            },
+            orderBy: {
+                createdAt: 'asc',
+            },
+        });
+
+        // 2. Group & aggregate per variant
+        const summaryMap = new Map();
+
+        journals.forEach(journal => {
+            const variantId = journal.productVariantId;
+
+            if (!summaryMap.has(variantId)) {
+                summaryMap.set(variantId, {
+                    productVariantId: variantId,
+                    productName: journal.productVariant.product.name,
+                    variantName: journal.productVariant.name,
+                    stockStart: journal.stockBefore, // Stok awal (dari journal pertama)
+                    totalIn: 0,
+                    totalOut: 0,
+                    stockEnd: 0,
+                });
+            }
+
+            const summary = summaryMap.get(variantId);
+
+            // Akumulasi IN/OUT
+            if (journal.type === 'IN') {
+                summary.totalIn += journal.quantity;
+            } else {
+                summary.totalOut += journal.quantity;
+            }
+
+            // Update stok akhir (dari journal terakhir)
+            summary.stockEnd = journal.stockAfter;
+        });
+
+        // 3. Convert Map to Array & apply pagination
+        const summaryArray = Array.from(summaryMap.values());
+        const totalItems = summaryArray.length;
+        const totalPages = Math.ceil(totalItems / limit);
+        const skip = (page - 1) * limit;
+        const paginatedData = summaryArray.slice(skip, skip + limit);
+
+        return {
+            summary: paginatedData,
+            pagination: {
+                page,
+                limit,
+                totalItems,
+                totalPages,
+                hasNext: page < totalPages,
+                hasPrev: page > 1,
+            },
+        };
+    }
 }
 
 export default new StockJournalService();
