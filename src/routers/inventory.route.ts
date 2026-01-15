@@ -11,6 +11,11 @@ router.get(
     inventoryController.checkStockAvailability
 );
 
+router.get(
+    "/variant/:variantId",
+    inventoryController.getInventoryByVariant
+);
+
 // Protected endpoints - butuh authentication
 router.use(verifyToken);
 
@@ -26,12 +31,6 @@ router.get(
     "/store/:storeId/all-variants",
     checkRoles(["SUPER_ADMIN", "STORE_ADMIN"]),
     inventoryController.getAllVariantsWithInventory
-);
-
-router.get(
-    "/variant/:variantId",
-    checkRoles(["SUPER_ADMIN"]), // Only Super Admin can see all stores
-    inventoryController.getInventoryByVariant
 );
 
 router.get(
