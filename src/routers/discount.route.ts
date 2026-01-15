@@ -5,11 +5,11 @@ import { checkRoles } from "../middlewares/checkRole.middleware";
 
 const router = Router();
 
-// PUBLIC ROUTES (No Auth Required) 
+// PUBLIC ROUTES (No Auth Required)
 
 router.get("/active", discountController.getActiveDiscounts);
 
-// ADMIN ROUTES (Auth + Role Required) 
+// ADMIN ROUTES (Auth + Role Required)
 
 router.get(
     "/",
@@ -28,21 +28,21 @@ router.get(
 router.post(
     "/",
     verifyToken,
-    checkRoles(["SUPER_ADMIN"]),
+    checkRoles(["SUPER_ADMIN", "STORE_ADMIN"]),
     discountController.createDiscount
 );
 
 router.put(
     "/:id",
     verifyToken,
-    checkRoles(["SUPER_ADMIN"]),
+    checkRoles(["SUPER_ADMIN", "STORE_ADMIN"]),
     discountController.updateDiscount
 );
 
 router.delete(
     "/:id",
     verifyToken,
-    checkRoles(["SUPER_ADMIN"]),
+    checkRoles(["SUPER_ADMIN", "STORE_ADMIN"]),
     discountController.deleteDiscount
 );
 

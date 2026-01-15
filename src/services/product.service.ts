@@ -1,14 +1,22 @@
 import prisma from "../prisma";
 
 class ProductService {
-  async getAllProducts(page: number = 1, limit: number = 10) {
+
+  async getAllProducts(
+    page: number = 1,
+    limit: number = 10,
+    city?: string // ← TAMBAH parameter city
+  ) {
     const pageNum = Math.max(1, page);
     const limitNum = Math.min(100, Math.max(1, limit));
     const skip = (pageNum - 1) * limitNum;
 
+    // Build where clause
+    const whereClause: any = { isDeleted: false };
+
     const [products, totalItems] = await Promise.all([
       prisma.product.findMany({
-        where: { isDeleted: false },
+        where: whereClause,
         skip,
         take: limitNum,
         orderBy: { createdAt: "desc" },
@@ -23,26 +31,65 @@ class ProductService {
           images: {
             orderBy: { order: "asc" },
           },
-          _count: {
-            select: {
-              variants: true,
+          variants: {
+            where: { isActive: true },
+            include: {
+              inventory: {
+                where: {
+                  quantity: { gt: 0 }, // ← Hanya yang ada stock
+                  ...(city && {
+                    store: {
+                      city: city, // ← Filter by city
+                      isActive: true,
+                    },
+                  }),
+                },
+                include: {
+                  store: {
+                    select: {
+                      id: true,
+                      name: true,
+                      city: true,
+                      address: true,
+                    },
+                  },
+                },
+                orderBy: {
+                  quantity: "desc", // ← Store dengan stock terbanyak duluan
+                },
+                take: 1, // ← Ambil 1 store saja per variant
+              },
             },
           },
         },
       }),
       prisma.product.count({
-        where: { isDeleted: false },
+        where: whereClause,
       }),
     ]);
+
+    // Transform data: ambil store dari variant pertama yang punya stock
+    const productsWithStore = products.map((product) => {
+      // Cari variant pertama yang punya inventory
+      const variantWithStock = product.variants.find(
+        (v) => v.inventory && v.inventory.length > 0
+      );
+
+      return {
+        ...product,
+        // Attach store info dari inventory
+        store: variantWithStock?.inventory[0]?.store || null,
+      };
+    }).filter((p) => p.store !== null); // ← Filter out products tanpa stock di city ini
 
     const totalPages = Math.ceil(totalItems / limitNum);
 
     return {
-      products,
+      products: productsWithStore,
       pagination: {
         page: pageNum,
         limit: limitNum,
-        totalItems,
+        totalItems: productsWithStore.length,
         totalPages,
         hasNext: pageNum < totalPages,
         hasPrev: pageNum > 1,

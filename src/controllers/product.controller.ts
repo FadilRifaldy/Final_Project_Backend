@@ -2,12 +2,14 @@ import productService from "../services/product.service";
 import { Request, Response, NextFunction } from "express";
 
 class ProductController {
+
   async getAllProducts(req: Request, res: Response, next: NextFunction) {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
+      const city = req.query.city as string; // ← Ambil city dari query param
 
-      const result = await productService.getAllProducts(page, limit);
+      const result = await productService.getAllProducts(page, limit, city);
 
       res.status(200).json({
         success: true,
