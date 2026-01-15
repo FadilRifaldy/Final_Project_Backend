@@ -1,11 +1,23 @@
 import type { Request, Response } from "express";
 import prisma from "../prisma";
-import { geocode } from "../lib/geocode";
+import { calculateDistance } from "../lib/distance";
 
 export async function createStore(req: Request, res: Response) {
   try {
-    const { name, address, phone, maxServiceRadius, isActive } = req.body;
+    const {
+      name,
+      address,
+      city,
+      province,
+      postalCode,
+      latitude,
+      longitude,
+      phone,
+      maxServiceRadius,
+      isActive,
+    } = req.body;
 
+    // Validation
     if (!name?.trim() || !address?.trim()) {
       return res.status(400).json({
         success: false,
@@ -13,20 +25,17 @@ export async function createStore(req: Request, res: Response) {
       });
     }
 
-    let geo;
-    try {
-      geo = await geocode(address);
-    } catch (err) {
+    if (!city?.trim() || !province?.trim()) {
       return res.status(400).json({
         success: false,
-        message: "Alamat tidak valid atau tidak ditemukan",
+        message: "City and province are required",
       });
     }
 
-    if (!geo?.latitude || !geo?.longitude) {
+    if (!latitude || !longitude || latitude === 0 || longitude === 0) {
       return res.status(400).json({
         success: false,
-        message: "Gagal menentukan lokasi dari alamat",
+        message: "Valid coordinates are required",
       });
     }
 
@@ -34,16 +43,15 @@ export async function createStore(req: Request, res: Response) {
       data: {
         name: name.trim(),
         address: address.trim(),
+        city: city.trim(),
+        province: province.trim(),
+        postalCode: postalCode?.trim() || "",
+        latitude,
+        longitude,
         phone: phone || null,
         maxServiceRadius:
-          typeof maxServiceRadius === "number" ? maxServiceRadius : 20,
+          typeof maxServiceRadius === "number" ? maxServiceRadius : 10,
         isActive: typeof isActive === "boolean" ? isActive : true,
-
-        latitude: geo.latitude,
-        longitude: geo.longitude,
-        city: geo.city || "",
-        province: geo.province || "",
-        postalCode: geo.postalCode || "",
       },
     });
 
@@ -127,7 +135,7 @@ export async function getStoreById(req: Request, res: Response) {
     const storeWithAdmin = {
       ...store,
       admin: store.userStores?.[0]?.user || null,
-      userStores: undefined, // Remove userStores array from response
+      userStores: undefined,
     };
 
     return res.status(200).json({
@@ -147,7 +155,18 @@ export async function getStoreById(req: Request, res: Response) {
 export async function updateStore(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    const { name, address, phone, maxServiceRadius, isActive } = req.body;
+    const {
+      name,
+      address,
+      city,
+      province,
+      postalCode,
+      latitude,
+      longitude,
+      phone,
+      maxServiceRadius,
+      isActive,
+    } = req.body;
 
     if (!id) {
       return res.status(400).json({
@@ -167,17 +186,19 @@ export async function updateStore(req: Request, res: Response) {
       });
     }
 
-    let geoData = null;
+    // Validation
+    if (!city?.trim() || !province?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "City and province are required",
+      });
+    }
 
-    if (address && address !== existingStore.address) {
-      try {
-        geoData = await geocode(address);
-      } catch {
-        return res.status(400).json({
-          success: false,
-          message: "Alamat tidak valid atau tidak ditemukan",
-        });
-      }
+    if (!latitude || !longitude || latitude === 0 || longitude === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid coordinates are required",
+      });
     }
 
     const updatedStore = await prisma.store.update({
@@ -185,6 +206,11 @@ export async function updateStore(req: Request, res: Response) {
       data: {
         name: name?.trim() ?? existingStore.name,
         address: address?.trim() ?? existingStore.address,
+        city: city?.trim() ?? existingStore.city,
+        province: province?.trim() ?? existingStore.province,
+        postalCode: postalCode?.trim() || existingStore.postalCode,
+        latitude: latitude ?? existingStore.latitude,
+        longitude: longitude ?? existingStore.longitude,
         phone: phone ?? existingStore.phone,
         maxServiceRadius:
           typeof maxServiceRadius === "number"
@@ -192,14 +218,6 @@ export async function updateStore(req: Request, res: Response) {
             : existingStore.maxServiceRadius,
         isActive:
           typeof isActive === "boolean" ? isActive : existingStore.isActive,
-
-        ...(geoData && {
-          latitude: geoData.latitude,
-          longitude: geoData.longitude,
-          city: geoData.city,
-          province: geoData.province,
-          postalCode: geoData.postalCode,
-        }),
       },
     });
 
@@ -330,7 +348,7 @@ export async function getStoreProducts(req: Request, res: Response) {
     const products = inventory.map((inv) => {
       const variant = inv.productVariant;
       const product = variant.product;
-      
+
       // Get primary image from variant or product
       const primaryImage =
         variant.assignedImages[0]?.image?.imageUrl ||
@@ -377,6 +395,89 @@ export async function getStoreProducts(req: Request, res: Response) {
     return res.status(500).json({
       success: false,
       message: "Failed to get store products",
+    });
+  }
+}
+
+export async function getNearestStore(req: Request, res: Response) {
+  try {
+    const { latitude, longitude } = req.query;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        message: "Latitude and longitude are required",
+      });
+    }
+
+    const userLat = parseFloat(latitude as string);
+    const userLon = parseFloat(longitude as string);
+
+    // Validate coordinates
+    if (isNaN(userLat) || isNaN(userLon)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid coordinates",
+      });
+    }
+
+    // Get ALL active stores (pure GPS approach)
+    const stores = await prisma.store.findMany({
+      where: {
+        isActive: true,
+      },
+    });
+
+    if (stores.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No stores available",
+      });
+    }
+
+    // Calculate distance for each store
+    const storesWithDistance = stores.map((store) => {
+      const distance = calculateDistance(
+        userLat,
+        userLon,
+        store.latitude,
+        store.longitude
+      );
+
+      return {
+        ...store,
+        distance: parseFloat(distance.toFixed(2)), // dalam KM
+        isInRange: distance <= store.maxServiceRadius,
+      };
+    });
+
+    // Sort by distance (ascending)
+    const sortedStores = storesWithDistance.sort(
+      (a, b) => a.distance - b.distance
+    );
+
+    // Get nearest store that is within service radius
+    const nearestInRange = sortedStores.find((s) => s.isInRange);
+
+    // If no store in range, return the nearest one anyway
+    const nearestStore = nearestInRange || sortedStores[0];
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        nearestStore,
+        isInServiceArea: !!nearestInRange,
+        message: nearestInRange
+          ? "Store found within service area"
+          : `Nearest store is ${nearestStore.distance} KM away (outside ${nearestStore.maxServiceRadius} KM service radius)`,
+      },
+    });
+  } catch (error) {
+    console.error("[GET NEAREST STORE ERROR]", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to find nearest store",
     });
   }
 }
