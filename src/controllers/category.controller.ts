@@ -1,16 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import categoryService from "../services/category.service";
 
-/**
- * Category Controller
- * Handle HTTP requests untuk Category CRUD
- */
-
 class CategoryController {
-  /**
-   * GET /api/categories
-   * Get all categories
-   */
   async getAllCategories(req: Request, res: Response, next: NextFunction) {
     try {
       const categories = await categoryService.getAllCategories();
@@ -24,10 +15,6 @@ class CategoryController {
     }
   }
 
-  /**
-   * GET /api/categories/:id
-   * Get category by ID
-   */
   async getCategoryById(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
@@ -43,10 +30,6 @@ class CategoryController {
     }
   }
 
-  /**
-   * POST /api/categories
-   * Create new category (Super Admin only)
-   */
   async createCategory(req: Request, res: Response, next: NextFunction) {
     try {
       const { name, description } = req.body;
@@ -71,10 +54,6 @@ class CategoryController {
     }
   }
 
-  /**
-   * PUT /api/categories/:id
-   * Update category (Super Admin only)
-   */
   async updateCategory(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
@@ -103,17 +82,7 @@ class CategoryController {
       next(error);
     }
   }
-  /**
-   * DELETE /api/categories/:id
-   * Delete category (Super Admin only)
-   */
-  /**
-   * DELETE /api/categories/:id
-   * Soft delete category (Super Admin only)
-   * Mengikuti implementasi soft delete di service:
-   * - Hanya kategori yang belum dihapus (deletedAt == null) dan belum ada produk yang terkait yang bisa dihapus.
-   * - Jika gagal karena ada produk atau sudah dihapus, balikan error 400.
-   */
+
   async deleteCategory(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
