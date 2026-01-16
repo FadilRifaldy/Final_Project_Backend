@@ -31,13 +31,18 @@ export async function getSearchSuggestions(req: Request, res: Response) {
     });
 
     // Transform to suggestions
-    const productSuggestions = productVariants.map((v: any) => ({
-      id: v.product.id,
-      name: v.product.name,
-      type: "product" as const,
-      category: v.product.category?.name || "Uncategorized",
-      image: v.product.images?.[0]?.imageUrl || null,
-    }));
+    const productSuggestions = productVariants.map((v: any) => {
+      const availableCity = v.product.variants?.[0]?.inventory?.[0]?.store?.city || null;
+      
+      return {
+        id: v.product.id,
+        name: v.product.name,
+        type: "product" as const,
+        category: v.product.category?.name || "Uncategorized",
+        image: v.product.images?.[0]?.imageUrl || null,
+        city: availableCity,
+      };
+    });
 
     const storeSuggestions = stores.map((s) => ({
       id: s.id,
