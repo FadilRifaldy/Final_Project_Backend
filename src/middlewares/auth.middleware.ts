@@ -5,7 +5,7 @@ export function verifyToken(req: Request, res: Response, next: NextFunction) {
   try {
     const token = req.cookies.authToken;
     if (!token) {
-      return res.status(401).json({ message: "Not authenticated" });
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET!);
@@ -14,6 +14,6 @@ export function verifyToken(req: Request, res: Response, next: NextFunction) {
 
     next();
   } catch (err) {
-    return res.status(401).json({ message: "Invalid or expired token" });
+    return res.status(401).json({ success: false, message: "Unauthorized" });
   }
 }

@@ -21,6 +21,7 @@ import discountRouter from "./routers/discount.route"
 import assignStoreAdminRoutes from "./routers/assign-store-admin.route"
 import searchRouter from "./routers/search.route";
 import usersRouter from "./routers/users.route";
+import cartRouter from "./routers/cart.route";
 
 const PORT = process.env.PORT;
 
@@ -53,6 +54,7 @@ app.use("/stores", storeRoutes);
 app.use("/assign-store-admin", assignStoreAdminRoutes)
 app.use("/search", searchRouter);
 app.use("/api/users-mng", usersRouter);
+app.use("/cart", cartRouter);
 
 // error middleware
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
