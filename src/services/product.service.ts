@@ -210,6 +210,38 @@ class ProductService {
           select: {
             id: true,
             name: true,
+            category: {
+              select: {
+                name: true,
+              },
+            },
+            images: {
+              select: {
+                imageUrl: true,
+              },
+              orderBy: {
+                order: 'asc',
+              },
+              take: 1,
+            },
+            variants: {
+              where: { isActive: true },
+              select: {
+                slug: true,
+                inventory: {
+                  where: { quantity: { gt: 0 } },
+                  select: {
+                    store: {
+                      select: {
+                        city: true,
+                      },
+                    },
+                  },
+                  take: 1,
+                },
+              },
+              take: 1,
+            },
           },
         },
       },
