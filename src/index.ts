@@ -23,6 +23,8 @@ import searchRouter from "./routers/search.route";
 import usersRouter from "./routers/users.route";
 import cartRouter from "./routers/cart.route";
 
+import checkoutRouter from "./routers/checkout.route";
+
 const PORT = process.env.PORT;
 
 // define app server
@@ -55,6 +57,7 @@ app.use("/assign-store-admin", assignStoreAdminRoutes)
 app.use("/search", searchRouter);
 app.use("/api/users-mng", usersRouter);
 app.use("/cart", cartRouter);
+app.use("/checkout", checkoutRouter);
 
 // error middleware
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {

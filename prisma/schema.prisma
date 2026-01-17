@@ -716,3 +716,4 @@ model VoucherUsage {
   @@index([voucherId])
   @@map("voucher_usages")
 }
+
