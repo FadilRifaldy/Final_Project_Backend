@@ -33,7 +33,7 @@ export async function getSearchSuggestions(req: Request, res: Response) {
     // Transform to suggestions
     const productSuggestions = productVariants.map((v: any) => {
       const availableCity = v.product.variants?.[0]?.inventory?.[0]?.store?.city || null;
-      
+
       return {
         id: v.product.id,
         name: v.product.name,
@@ -180,22 +180,22 @@ export async function searchProducts(req: Request, res: Response) {
               inventory: {
                 where: city || storeId
                   ? {
-                      quantity: { gt: 0 },
-                      store: {
-                        isActive: true,
-                        ...(city && {
-                          city: {
-                            contains: city as string,
-                            mode: "insensitive",
-                          },
-                        }),
-                        ...(storeId && { id: storeId as string }),
-                      },
-                    }
-                  : {
-                      quantity: { gt: 0 },
-                      store: { isActive: true },
+                    quantity: { gt: 0 },
+                    store: {
+                      isActive: true,
+                      ...(city && {
+                        city: {
+                          contains: city as string,
+                          mode: "insensitive",
+                        },
+                      }),
+                      ...(storeId && { id: storeId as string }),
                     },
+                  }
+                  : {
+                    quantity: { gt: 0 },
+                    store: { isActive: true },
+                  },
                 include: {
                   store: true,
                 },
@@ -227,6 +227,7 @@ export async function searchProducts(req: Request, res: Response) {
 
       return {
         ...product,
+        storeId: store?.id || null,
         storeName: store?.name || null,
         storeCity: store?.city || null,
         availableStock,
