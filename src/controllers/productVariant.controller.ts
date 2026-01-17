@@ -6,7 +6,8 @@ class ProductVariantController {
     async getVariantsByProduct(req: Request, res: Response, next: NextFunction) {
         try {
             const { productId } = req.params
-            const variants = await productVariantService.getVariantsByProduct(productId)
+            const storeId = req.query.storeId as string | undefined
+            const variants = await productVariantService.getVariantsByProduct(productId, storeId)
             res.status(200).json({
                 success: true,
                 data: variants,

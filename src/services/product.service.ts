@@ -1,14 +1,28 @@
 import prisma from "../prisma";
 
 class ProductService {
-  async getAllProducts(page: number = 1, limit: number = 10) {
+  async getAllProducts(page: number = 1, limit: number = 10, storeId?: string) {
     const pageNum = Math.max(1, page);
     const limitNum = Math.min(100, Math.max(1, limit));
     const skip = (pageNum - 1) * limitNum;
 
+    const whereCondition: any = { isDeleted: false };
+    
+    if (storeId) {
+      whereCondition.variants = {
+        some: {
+          inventory: {
+            some: {
+              storeId: storeId,
+            }
+          }
+        }
+      };
+    }
+
     const [products, totalItems] = await Promise.all([
       prisma.product.findMany({
-        where: { isDeleted: false },
+        where: whereCondition,
         skip,
         take: limitNum,
         orderBy: { createdAt: "desc" },
@@ -31,7 +45,7 @@ class ProductService {
         },
       }),
       prisma.product.count({
-        where: { isDeleted: false },
+        where: whereCondition,
       }),
     ]);
 
