@@ -1,0 +1,26 @@
+[2026-01-17T12:03:11.394Z] [RajaOngkir] Searching location: "Kota Bandung"
+[2026-01-17T12:03:11.620Z] [RajaOngkir] Found: KOTA AGUNG, KOTA AGUNG (KOTA AGUNG PUSAT), TANGGAMUS, LAMPUNG, 35384 (ID: 76201, Type: undefined)
+[2026-01-17T12:03:11.620Z] [RajaOngkir] Searching location: "Cirebon Kertawinangun"
+[2026-01-17T12:03:11.687Z] [RajaOngkir] Found: KERTAWINANGUN, KEDAWUNG, CIREBON, JAWA BARAT, 45153 (ID: 17248, Type: undefined)
+[2026-01-17T12:03:11.688Z] [RajaOngkir] Calculating cost: 76201 (undefined) -> 17248 (undefined), Weight: 570g
+[2026-01-17T12:03:12.018Z] [RajaOngkir] Total options found: 15
+[2026-01-17T12:06:40.945Z] [RajaOngkir] Searching location: "Kota Bandung"
+[2026-01-17T12:06:41.187Z] [RajaOngkir] Found: KOTA AGUNG, KOTA AGUNG (KOTA AGUNG PUSAT), TANGGAMUS, LAMPUNG, 35384 (ID: 76201, Type: undefined)
+[2026-01-17T12:06:41.188Z] [RajaOngkir] Searching location: "Cirebon Kertawinangun"
+[2026-01-17T12:06:41.245Z] [RajaOngkir] Found: KERTAWINANGUN, KEDAWUNG, CIREBON, JAWA BARAT, 45153 (ID: 17248, Type: undefined)
+[2026-01-17T12:06:41.246Z] [RajaOngkir] Calculating cost: 76201 (undefined) -> 17248 (undefined), Weight: 570g
+[2026-01-17T12:06:41.589Z] [RajaOngkir] Total options found: 15
+[2026-01-17T12:33:17.273Z] [RajaOngkir] Searching location: "Kota Bandung"
+[2026-01-17T12:33:17.533Z] [RajaOngkir] Found: KOTA AGUNG, KOTA AGUNG (KOTA AGUNG PUSAT), TANGGAMUS, LAMPUNG, 35384 (ID: 76201, Type: undefined)
+[2026-01-17T12:33:17.533Z] [RajaOngkir] Searching location: "Cirebon Kertawinangun"
+[2026-01-17T12:33:17.631Z] [RajaOngkir] Found: KERTAWINANGUN, KEDAWUNG, CIREBON, JAWA BARAT, 45153 (ID: 17248, Type: undefined)
+[2026-01-17T12:33:17.632Z] [RajaOngkir] Calculating cost: 76201 (undefined) -> 17248 (undefined), Weight: 570g
+[2026-01-17T12:33:18.005Z] [RajaOngkir] Total options found: 15
+[2026-01-17T12:33:23.047Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T12:33:23.055Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T12:34:16.177Z] [RajaOngkir] Searching location: "Kota Bandung"
+[2026-01-17T12:34:16.387Z] [RajaOngkir] Found: KOTA AGUNG, KOTA AGUNG (KOTA AGUNG PUSAT), TANGGAMUS, LAMPUNG, 35384 (ID: 76201, Type: undefined)
+[2026-01-17T12:34:16.387Z] [RajaOngkir] Searching location: "Cirebon Kertawinangun"
+[2026-01-17T12:34:16.448Z] [RajaOngkir] Found: KERTAWINANGUN, KEDAWUNG, CIREBON, JAWA BARAT, 45153 (ID: 17248, Type: undefined)
+[2026-01-17T12:34:16.448Z] [RajaOngkir] Calculating cost: 76201 (undefined) -> 17248 (undefined), Weight: 570g
+[2026-01-17T12:34:16.753Z] [RajaOngkir] Total options found: 15

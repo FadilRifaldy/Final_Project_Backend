@@ -1,6 +1,57 @@
 // controllers/checkout.controller.ts
 import { Request, Response } from 'express';
 import prisma from '../prisma';
+import { getRajaOngkirShippingCost, findRajaOngkirLocation, LocationResult } from '../services/rajaongkir.service';
+import { calculateDistance } from '../lib/distance';
+
+/**
+ * Generate mock shipping options based on distance and weight
+ */
+function generateMockShippingOptions(distance: number, weight: number) {
+  // Base rates per kg per km
+  const baseRatePerKgKm = {
+    jne: 0.8,
+    pos: 0.6,
+    tiki: 0.75,
+  };
+
+  const weightInKg = weight / 1000;
+  
+  return [
+    {
+      courier: 'JNE',
+      courierName: 'JNE Express',
+      service: 'REG',
+      description: 'Layanan Reguler',
+      cost: Math.round(15000 + (distance * weightInKg * baseRatePerKgKm.jne * 100)),
+      etd: distance < 50 ? '1-2 hari' : distance < 200 ? '2-3 hari' : '3-5 hari',
+    },
+    {
+      courier: 'JNE',
+      courierName: 'JNE Express',
+      service: 'YES',
+      description: 'Yakin Esok Sampai',
+      cost: Math.round(25000 + (distance * weightInKg * baseRatePerKgKm.jne * 150)),
+      etd: '1 hari',
+    },
+    {
+      courier: 'POS',
+      courierName: 'POS Indonesia',
+      service: 'Pos Reguler',
+      description: 'Layanan Pos Reguler',
+      cost: Math.round(12000 + (distance * weightInKg * baseRatePerKgKm.pos * 100)),
+      etd: distance < 50 ? '2-3 hari' : distance < 200 ? '3-4 hari' : '4-7 hari',
+    },
+    {
+      courier: 'TIKI',
+      courierName: 'TIKI',
+      service: 'REG',
+      description: 'Regular Service',
+      cost: Math.round(14000 + (distance * weightInKg * baseRatePerKgKm.tiki * 100)),
+      etd: distance < 50 ? '1-2 hari' : distance < 200 ? '2-4 hari' : '3-6 hari',
+    },
+  ];
+}
 
 /**
  * GET /checkout/addresses
@@ -37,7 +88,7 @@ export async function getUserAddresses(req: Request, res: Response) {
 
 /**
  * POST /checkout/shipping-cost
- * Calculate shipping cost (Placeholder)
+ * Calculate shipping cost using RajaOngkir (with fallback to mock data)
  */
 export async function calculateShippingCost(req: Request, res: Response) {
   try {
@@ -70,11 +121,16 @@ export async function calculateShippingCost(req: Request, res: Response) {
       });
     }
 
-    // Get user's cart to find origin store
+    // Get user's cart to find origin store and calculate real weight from items
     const cart = await prisma.cart.findUnique({
       where: { userId },
       include: {
         store: true,
+        items: {
+          include: {
+            productVariant: true
+          }
+        }
       },
     });
 
@@ -85,7 +141,78 @@ export async function calculateShippingCost(req: Request, res: Response) {
       });
     }
 
-    // TODO: Implement Shipping API (Biteship, RajaOngkir, etc.)
+    // Use weight from body (estimated by frontend) or calculate from cart items
+    let totalWeight = weight;
+    if (!totalWeight) {
+      totalWeight = cart.items.reduce((sum, item) => {
+        return sum + (item.productVariant.weight * item.quantity);
+      }, 0);
+    }
+    
+    // Minimum weight for shipping calculation
+    if (!totalWeight || totalWeight <= 0) totalWeight = 1000;
+
+    // Try RajaOngkir first
+    let shippingOptions: any[] = [];
+    let source = 'fallback';
+
+    try {
+      // 1. Find Origin Location (Store)
+      // Store usually has city/province. We try to find precise location if "district" is added to schema, currently likely just city.
+      // Search: City Name
+      const originLocation = await findRajaOngkirLocation(cart.store.city);
+      
+      // 2. Find Destination Location (User Address)
+      // User address has: province, city, district (kecamatan), postalCode
+      // We try precise search: "Kecamatan City"
+      let destLocation: LocationResult | null = null;
+      
+      // Try searching with District first for higher accuracy (Kecamatan)
+      if (address.district) {
+        destLocation = await findRajaOngkirLocation(`${address.district} ${address.city}`);
+      }
+      
+      // Fallback to searching by City only if district search failed
+      if (!destLocation) {
+        destLocation = await findRajaOngkirLocation(address.city);
+      }
+
+      if (originLocation && destLocation) {
+        const rajaResult = await getRajaOngkirShippingCost(
+          originLocation.id,
+          originLocation.type,
+          destLocation.id,
+          destLocation.type,
+          totalWeight,
+          'jne,pos,tiki'
+        );
+
+        if (rajaResult.success && rajaResult.options && rajaResult.options.length > 0) {
+          shippingOptions = rajaResult.options;
+          source = 'rajaongkir';
+        }
+      } else {
+        console.warn(`[Checkout] Location mapping failed. Origin: ${originLocation?.label}, Dest: ${destLocation?.label}`);
+      }
+    } catch (rajaError: any) {
+      console.warn('RajaOngkir API failed, using fallback:', rajaError.message);
+    }
+
+    // Fallback to mock data if RajaOngkir fails
+    if (shippingOptions.length === 0) {
+      const distance = calculateDistance(
+        cart.store.latitude,
+        cart.store.longitude,
+        address.latitude,
+        address.longitude
+      );
+      
+      shippingOptions = generateMockShippingOptions(distance, totalWeight);
+      source = 'mock';
+      
+      console.log(`Using mock shipping data. Distance: ${distance.toFixed(2)}km, Weight: ${totalWeight}g`);
+    }
+
     return res.status(200).json({
       success: true,
       data: {
@@ -97,237 +224,16 @@ export async function calculateShippingCost(req: Request, res: Response) {
           city: address.city,
           province: address.province,
         },
-        weight: weight || 1000,
-        options: [],
-        message: 'Layanan kurir belum terintegrasi'
+        weight: totalWeight,
+        options: shippingOptions,
+        source, // 'rajaongkir' or 'mock'
       },
     });
   } catch (error: any) {
-    console.error(' [Checkout Controller] Error calculating shipping:', error);
+    console.error('[Checkout Controller] Error calculating shipping:', error);
     return res.status(500).json({
       success: false,
       message: `Gagal menghitung ongkos kirim: ${error.message || 'Unknown error'}`,
-    });
-  }
-}
-
-/**
- * POST /checkout/create-order
- * Create order from cart
- */
-export async function createOrder(req: Request, res: Response) {
-  try {
-    const userId = req.user?.userId;
-    const {
-      addressId,
-      shippingCourier,
-      shippingService,
-      shippingDescription,
-      shippingEstimate,
-      shippingFee,
-      paymentMethod,
-    } = req.body;
-
-    if (!userId) {
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
-    }
-
-    // Validation
-    if (!addressId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Alamat pengiriman wajib dipilih',
-      });
-    }
-
-    if (!shippingCourier || !shippingService || !shippingFee) {
-      return res.status(400).json({
-        success: false,
-        message: 'Metode pengiriman wajib dipilih',
-      });
-    }
-
-    if (!paymentMethod) {
-      return res.status(400).json({
-        success: false,
-        message: 'Metode pembayaran wajib dipilih',
-      });
-    }
-
-    // Get cart with items
-    const cart = await prisma.cart.findUnique({
-      where: { userId },
-      include: {
-        store: true,
-        items: {
-          include: {
-            productVariant: {
-              include: {
-                product: true,
-                inventory: {
-                  where: {
-                    // storeId will be filtered inside logic or assuming correct relation
-                    // Prisma include doesn't filter parent relation well here without explicit query
-                    // Easier to fetch inventory separately or trust the join relation logic
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!cart || cart.items.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Keranjang kosong',
-      });
-    }
-
-    // Verify address belongs to user
-    const address = await prisma.address.findFirst({
-      where: {
-        id: addressId,
-        userId,
-      },
-    });
-
-    if (!address) {
-      return res.status(400).json({
-        success: false,
-        message: 'Alamat tidak valid',
-      });
-    }
-
-    // Validate stock for all items
-    for (const item of cart.items) {
-      // Find inventory for this specific store
-      const inventory = await prisma.inventory.findUnique({
-        where: {
-          productVariantId_storeId: {
-            productVariantId: item.productVariantId,
-            storeId: cart.storeId
-          }
-        }
-      });
-      
-      const availableStock = inventory ? inventory.quantity - inventory.reserved : 0;
-
-      if (availableStock < item.quantity) {
-        return res.status(400).json({
-          success: false,
-          message: `Stok ${item.productVariant.name} tidak mencukupi`,
-        });
-      }
-    }
-
-    // Calculate totals
-    const subtotal = cart.items.reduce(
-      (sum, item) => sum + Number(item.priceAtAdd) * item.quantity,
-      0
-    );
-    const total = subtotal + Number(shippingFee);
-
-    // Generate order number
-    const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-
-    // Create order with transaction
-    const order = await prisma.$transaction(async (tx) => {
-      // Create order
-      const newOrder = await tx.order.create({
-        data: {
-          userId,
-          orderNumber,
-          shippingAddressId: addressId,
-          shippingStoreId: cart.storeId,
-          shippingCourier,
-          shippingService,
-          shippingDescription: shippingDescription || '',
-          shippingEstimate: shippingEstimate || '',
-          shippingFee: Number(shippingFee),
-          subtotal,
-          total,
-          paymentMethod,
-          paymentStatus: 'UNPAID',
-          orderStatus: 'PENDING_PAYMENT',
-          autoCancelAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
-        },
-      });
-
-      // Create order items
-      for (const item of cart.items) {
-        await tx.orderItem.create({
-          data: {
-            orderId: newOrder.id,
-            productVariantId: item.productVariantId,
-            sku: item.productVariant.sku,
-            productName: item.productVariant.product.name,
-            variantName: item.productVariant.name,
-            price: Number(item.priceAtAdd),
-            quantity: item.quantity,
-            subtotal: Number(item.priceAtAdd) * item.quantity,
-            total: Number(item.priceAtAdd) * item.quantity, // Simplification: discount logic later
-          },
-        });
-
-        // Reserve stock
-        await tx.inventory.update({
-          where: {
-            productVariantId_storeId: {
-              productVariantId: item.productVariantId,
-              storeId: cart.storeId,
-            },
-          },
-          data: {
-            reserved: {
-              increment: item.quantity,
-            },
-          },
-        });
-      }
-
-      // Create payment record
-      await tx.payment.create({
-        data: {
-          orderId: newOrder.id,
-          method: paymentMethod,
-          status: 'UNPAID',
-          amount: total,
-        },
-      });
-
-      // Create order history
-      await tx.orderHistory.create({
-        data: {
-          orderId: newOrder.id,
-          toStatus: 'PENDING_PAYMENT',
-          note: 'Order created',
-          createdBy: userId,
-        },
-      });
-
-      // Clear cart
-      await tx.cartItem.deleteMany({
-        where: { cartId: cart.id },
-      });
-
-      return newOrder;
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: 'Order berhasil dibuat',
-      data: {
-        orderId: order.id,
-        orderNumber: order.orderNumber,
-      },
-    });
-  } catch (error: any) {
-    console.error('Error creating order:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Gagal membuat order',
     });
   }
 }
