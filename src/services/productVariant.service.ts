@@ -5,7 +5,7 @@ import { generateSlug } from "../lib/slug.util";
 
 class ProductVariantService {
 
-    async getVariantsByProduct(productId: string) {
+    async getVariantsByProduct(productId: string, storeId?: string) {
         // cek product nya dulu ada/tidak
         const product = await prisma.product.findUnique({
             where: {
@@ -17,12 +17,23 @@ class ProductVariantService {
             throw new Error("Product not found")
         }
 
+        const whereCondition: any = {
+            productId,
+            isActive: true
+        }
+
+        if (storeId) {
+            whereCondition.inventory = {
+                some: {
+                    storeId,
+                    quantity: { gt: 0 }
+                }
+            }
+        }
+
         // get all variant dengan images
         const variants = await prisma.productVariant.findMany({
-            where: {
-                productId,
-                isActive: true
-            },
+            where: whereCondition,
             orderBy: {
                 createdAt: "asc"
             },

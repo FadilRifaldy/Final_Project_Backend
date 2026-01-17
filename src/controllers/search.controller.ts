@@ -120,9 +120,26 @@ export async function searchProducts(req: Request, res: Response) {
       isDeleted: false,
     };
 
-    // Search filter
+    // Search filter: Product Name OR Store Name
     if (search && typeof search === "string" && search.trim()) {
-      where.name = { contains: search.trim(), mode: "insensitive" };
+      const query = search.trim();
+      where.OR = [
+        { name: { contains: query, mode: "insensitive" } },
+        { 
+          variants: { 
+            some: { 
+              inventory: { 
+                some: { 
+                  store: { 
+                    name: { contains: query, mode: "insensitive" },
+                    isActive: true
+                  } 
+                } 
+              } 
+            } 
+          } 
+        }
+      ];
     }
 
     // Category filter
@@ -288,31 +305,31 @@ export async function searchStores(req: Request, res: Response) {
       };
     }
 
-    // Store name search
-    if (search && typeof search === "string" && search.trim()) {
-      where.name = {
-        contains: search.trim(),
-        mode: "insensitive",
-      };
-    }
-
-    // Filter stores that have specific product (unique to search)
-    if (hasProduct && typeof hasProduct === "string" && hasProduct.trim()) {
-      where.inventory = {
-        some: {
-          quantity: { gt: 0 },
-          productVariant: {
-            isActive: true,
-            product: {
-              name: {
-                contains: hasProduct.trim(),
-                mode: "insensitive",
-              },
-              isDeleted: false,
-            },
-          },
+    // Hybrid Search: Store Name OR Product Name
+    const query = (search as string) || (hasProduct as string);
+    if (query && typeof query === "string" && query.trim()) {
+      const searchTerm = query.trim();
+      where.OR = [
+        // Match Store Name
+        { 
+          name: { contains: searchTerm, mode: "insensitive" } 
         },
-      };
+        // Match Product Name in Inventory
+        {
+          inventory: {
+            some: {
+              quantity: { gt: 0 },
+              productVariant: {
+                isActive: true,
+                product: {
+                  name: { contains: searchTerm, mode: "insensitive" },
+                  isDeleted: false,
+                },
+              },
+            },
+          }
+        }
+      ];
     }
 
     // Get stores

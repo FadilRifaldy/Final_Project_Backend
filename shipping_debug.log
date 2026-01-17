@@ -44,13 +44,49 @@
 [2026-01-17T13:15:11.637Z] [RajaOngkir] Total options found: 12
 [2026-01-17T13:55:15.068Z] [Env Check] RAJAONGKIR_API_KEY present: true
 [2026-01-17T13:55:15.111Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
-[2026-01-17T14:17:44.376Z] [Env Check] RAJAONGKIR_API_KEY present: true
-[2026-01-17T14:17:44.388Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
-[2026-01-17T14:17:46.555Z] [Env Check] RAJAONGKIR_API_KEY present: true
-[2026-01-17T14:17:46.558Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
-[2026-01-17T14:40:12.782Z] [Env Check] RAJAONGKIR_API_KEY present: true
-[2026-01-17T14:40:12.796Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
-[2026-01-17T14:59:28.924Z] [Env Check] RAJAONGKIR_API_KEY present: true
-[2026-01-17T14:59:28.936Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
-[2026-01-17T15:08:26.235Z] [Env Check] RAJAONGKIR_API_KEY present: true
-[2026-01-17T15:08:26.239Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T14:19:48.236Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T14:19:48.238Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T14:19:50.791Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T14:19:50.792Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T14:21:13.999Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T14:21:14.009Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T14:53:42.183Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T14:53:42.194Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T15:39:06.873Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T15:39:06.886Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T15:39:09.257Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T15:39:09.258Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T15:39:36.518Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T15:39:36.522Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T15:39:44.448Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T15:39:44.489Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T15:44:46.921Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T15:44:46.932Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T16:01:34.150Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T16:01:34.163Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T16:40:59.514Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T16:40:59.568Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T16:41:02.118Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T16:41:02.120Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T16:41:30.025Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T16:41:30.037Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T16:55:10.468Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T16:55:10.486Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T16:58:32.013Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T16:58:32.022Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T17:02:35.214Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T17:02:35.223Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T17:03:20.318Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T17:03:20.330Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T17:11:26.806Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T17:11:26.825Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T17:16:50.712Z] [RajaOngkir] Searching location: "Kota Bandung"
+[2026-01-17T17:16:51.057Z] [RajaOngkir] Found: KOTA AGUNG, KOTA AGUNG (KOTA AGUNG PUSAT), TANGGAMUS, LAMPUNG, 35384 (ID: 76201, Type: undefined)
+[2026-01-17T17:16:51.058Z] [RajaOngkir] Searching location: "Cirebon Kertawinangun"
+[2026-01-17T17:16:51.117Z] [RajaOngkir] Found: KERTAWINANGUN, KEDAWUNG, CIREBON, JAWA BARAT, 45153 (ID: 17248, Type: undefined)
+[2026-01-17T17:16:51.118Z] [RajaOngkir] Calculating cost: 76201 (undefined) -> 17248 (undefined), Weight: 570g
+[2026-01-17T17:16:51.436Z] [RajaOngkir] Total options found: 15
+[2026-01-17T17:53:18.350Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T17:53:18.360Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T17:53:20.785Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T17:53:20.787Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1

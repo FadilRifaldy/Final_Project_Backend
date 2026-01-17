@@ -360,6 +360,7 @@ export async function getStoreProducts(req: Request, res: Response) {
         productId: product.id,
         name: product.name,
         variantName: variant.name,
+        variantSlug: variant.slug, // Added for deep linking
         fullName: `${product.name} ${variant.name}`,
         price: parseFloat(variant.price.toString()),
         image: primaryImage,
