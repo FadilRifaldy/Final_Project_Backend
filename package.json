@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx --watch src/index.ts"
+    "dev": "tsx --watch src/index.ts",
+    "seed:variants": "tsx prisma/seed-variants.ts"
   },
   "type": "module",
   "keywords": [],
