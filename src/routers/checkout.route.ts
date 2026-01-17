@@ -3,7 +3,6 @@ import { verifyToken } from '../middlewares/auth.middleware';
 import {
   getUserAddresses,
   calculateShippingCost,
-  createOrder,
 } from '../controllers/checkout.controller';
 
 const router = Router();
@@ -13,6 +12,5 @@ router.use(verifyToken);
 
 router.get('/addresses', getUserAddresses);
 router.post('/shipping-cost', calculateShippingCost);
-router.post('/create-order', createOrder);
 
 export default router;
