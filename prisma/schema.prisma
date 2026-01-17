@@ -403,7 +403,7 @@ model Discount {
 
   // Scope & Ownership
   // storeId == global (Super Admin), filled = specific store (Store Admin)
-  storeId   String? 
+  storeId   String?
   createdBy String // User ID yang membuat discount
 
   // Conditions
@@ -716,4 +716,3 @@ model VoucherUsage {
   @@index([voucherId])
   @@map("voucher_usages")
 }
-

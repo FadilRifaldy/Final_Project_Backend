@@ -18,6 +18,7 @@ import inventoryRouter from "./routers/inventory.route";
 import addressRoutes from "./routers/address.route"
 import storeRoutes from "./routers/store.route"
 import discountRouter from "./routers/discount.route"
+import voucherRouter from "./routers/voucher.route"
 import assignStoreAdminRoutes from "./routers/assign-store-admin.route"
 import searchRouter from "./routers/search.route";
 import usersRouter from "./routers/users.route";
@@ -48,6 +49,7 @@ app.use("/api/products/var", variantRouter, productVariantImageRouter); // produ
 app.use("/api/stock-journal", stockJournalRouter);
 app.use("/api/inventory", inventoryRouter);
 app.use("/api/discounts", discountRouter)
+app.use("/api/vouchers", voucherRouter)
 app.use("/verify", emailVerifRouter);
 app.use("/user", updateProfileRouter);
 app.use("/categories", categoryRouter);
