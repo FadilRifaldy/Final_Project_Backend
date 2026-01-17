@@ -174,7 +174,6 @@ class DiscountService {
         return discount;
     }
 
-
     async updateDiscount(id: string, data: {
         name?: string;
         description?: string;
@@ -292,7 +291,6 @@ class DiscountService {
     // ========================================
     // TOGGLE DISCOUNT STATUS
     // ========================================
-
 
     // ini untuk mengaktifkan atau menonaktifkan discount
     async toggleDiscountStatus(id: string, isActive: boolean) {
