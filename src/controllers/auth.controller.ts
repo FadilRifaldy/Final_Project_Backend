@@ -166,6 +166,14 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     //   }
     // }
 
+    // Debug logging
+    console.log('[Login] Setting cookie with NODE_ENV:', process.env.NODE_ENV);
+    console.log('[Login] Cookie settings:', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    });
+
     return res
       .status(200)
       .cookie("authToken", token, {
@@ -346,6 +354,14 @@ export async function socialLogin(req: Request, res: Response) {
       process.env.JWT_SECRET!,
       { expiresIn: "1h" }
     );
+
+    // Debug logging
+    console.log('[SocialLogin] Setting cookie with NODE_ENV:', process.env.NODE_ENV);
+    console.log('[SocialLogin] Cookie settings:', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    });
 
     res.cookie("authToken", token, {
       httpOnly: true,
