@@ -34,7 +34,7 @@ const app: Application = express();
 // define app basic middleware
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://final-project-frontend-eight.vercel.app", // Production frontend
+  "https://final-project-frontend-seven-delta.vercel.app", // Production frontend
   process.env.APP_URL || "http://localhost:3000"
 ].filter(Boolean); // Remove any undefined values
 
