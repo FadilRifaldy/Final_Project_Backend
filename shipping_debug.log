@@ -90,3 +90,7 @@
 [2026-01-17T17:53:18.360Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
 [2026-01-17T17:53:20.785Z] [Env Check] RAJAONGKIR_API_KEY present: true
 [2026-01-17T17:53:20.787Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T18:06:57.243Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T18:06:57.246Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1
+[2026-01-17T18:08:14.873Z] [Env Check] RAJAONGKIR_API_KEY present: true
+[2026-01-17T18:08:14.876Z] [Env Check] RAJAONGKIR_BASE_URL: https://rajaongkir.komerce.id/api/v1

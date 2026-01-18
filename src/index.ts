@@ -32,7 +32,24 @@ const PORT = process.env.PORT;
 const app: Application = express();
 
 // define app basic middleware
-app.use(cors({ origin: "http://localhost:3000", credentials: true })); // allow other domain to access api
+const allowedOrigins = [
+  "http://localhost:3000",
+  process.env.APP_URL || "http://localhost:3000"
+];
+
+app.use(cors({ 
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true 
+}));
 app.use(express.json()); // for receive req.body
 app.use(cookieParser());
 
@@ -73,7 +90,13 @@ app.use((error: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// run app server
-app.listen(PORT, () => {
-  console.log("API RUNNING", PORT);
-});
+// run app server (only for local development)
+// Vercel will use the exported app directly
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log("API RUNNING", PORT);
+  });
+}
+
+// Export for Vercel serverless
+export default app;

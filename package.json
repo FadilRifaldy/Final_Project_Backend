@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx --watch src/index.ts",
+    "build": "echo 'Build complete'",
     "seed:variants": "tsx prisma/seed-variants.ts"
   },
   "type": "module",
