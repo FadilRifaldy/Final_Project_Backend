@@ -1,14 +1,11 @@
 import axios from 'axios';
-import fs from 'fs';
-import path from 'path';
 import dotenv from 'dotenv';
 import qs from 'qs';
 
 dotenv.config();
 
 const debugLog = (msg: string) => {
-  const logPath = path.join(process.cwd(), 'shipping_debug.log');
-  fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${msg}\n`);
+  console.log(`[RajaOngkir Debug] [${new Date().toISOString()}] ${msg}`);
 };
 
 debugLog(`[Env Check] RAJAONGKIR_API_KEY present: ${!!process.env.RAJAONGKIR_API_KEY}`);
