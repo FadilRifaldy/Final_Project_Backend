@@ -68,7 +68,7 @@ class InventoryService {
         const totalPages = Math.ceil(totalItems / limit);
 
         // Calculate available stock untuk setiap inventory
-        const inventoriesWithAvailable = inventories.map(​(inv: any) => ({
+        const inventoriesWithAvailable = inventories.map((inv: any) => ({
             ...inv,
             available: inv.quantity - inv.reserved,
         }));
@@ -177,7 +177,7 @@ class InventoryService {
         const totalPages = Math.ceil(totalItems / limit);
 
         // Transform to inventory-like structure
-        let inventoriesWithAvailable = variants.map(​(variant: any) => {
+        let inventoriesWithAvailable = variants.map((variant: any) => {
             const inventory = variant.inventory[0]; // Get inventory untuk store ini
 
             if (inventory) {

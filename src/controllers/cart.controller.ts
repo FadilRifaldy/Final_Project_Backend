@@ -85,7 +85,7 @@ export async function getCart(req: Request, res: Response) {
 
     // Re-fetch inventory with correct storeId
     const formattedItems = await Promise.all(
-      cart.items.map(async ​(item: any) => {
+      cart.items.map(async (item: any) => {
         const inventory = await prisma.inventory.findFirst({
           where: {
             productVariantId: item.productVariant.id,
@@ -96,7 +96,7 @@ export async function getCart(req: Request, res: Response) {
         const availableStock = inventory ? inventory.quantity - inventory.reserved : 0;
         
         // Get primary image
-        const primaryImage = item.productVariant.assignedImages.find(​(img: any) => img.isPrimary);
+        const primaryImage = item.productVariant.assignedImages.find((img: any) => img.isPrimary);
         const imageUrl = primaryImage 
           ? primaryImage.image.imageUrl 
           : item.productVariant.assignedImages[0]?.image.imageUrl || null;
@@ -129,11 +129,11 @@ export async function getCart(req: Request, res: Response) {
     );
 
     // Calculate summary
-    const subtotal = formattedItems.reduce(​(sum: number, item: any) => sum + item.subtotal, 0);
+    const subtotal = formattedItems.reduce((sum: number, item: any) => sum + item.subtotal, 0);
     const totalItems = formattedItems.length;
-    const totalQuantity = formattedItems.reduce(​(sum: number, item: any) => sum + item.quantity, 0);
+    const totalQuantity = formattedItems.reduce((sum: number, item: any) => sum + item.quantity, 0);
     const estimatedWeight = formattedItems.reduce(
-      ​(sum: number, item: any) => sum + item.variant.weight * item.quantity,
+      (sum: number, item: any) => sum + item.variant.weight * item.quantity,
       0
     );
 
@@ -321,7 +321,7 @@ export async function addItemToCart(req: Request, res: Response) {
     });
 
     const totalItems = updatedCart?.items.length || 0;
-    const totalQuantity = updatedCart?.items.reduce(​(sum: number, item: any) => sum + item.quantity, 0) || 0;
+    const totalQuantity = updatedCart?.items.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
 
     return res.json({
       success: true,
@@ -431,9 +431,9 @@ export async function updateCartItem(req: Request, res: Response) {
     });
 
     const totalItems = updatedCart?.items.length || 0;
-    const totalQuantity = updatedCart?.items.reduce(​(sum: number, item: any) => sum + item.quantity, 0) || 0;
+    const totalQuantity = updatedCart?.items.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
     const subtotal = updatedCart?.items.reduce(
-      ​(sum: number, item: any) => sum + Number(item.priceAtAdd) * item.quantity,
+      (sum: number, item: any) => sum + Number(item.priceAtAdd) * item.quantity,
       0
     ) || 0;
 
@@ -507,9 +507,9 @@ export async function deleteCartItem(req: Request, res: Response) {
     });
 
     const totalItems = updatedCart?.items.length || 0;
-    const totalQuantity = updatedCart?.items.reduce(​(sum: number, item: any) => sum + item.quantity, 0) || 0;
+    const totalQuantity = updatedCart?.items.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
     const subtotal = updatedCart?.items.reduce(
-      ​(sum: number, item: any) => sum + Number(item.priceAtAdd) * item.quantity,
+      (sum: number, item: any) => sum + Number(item.priceAtAdd) * item.quantity,
       0
     ) || 0;
 
@@ -659,13 +659,13 @@ export async function validateUserCart(req: Request, res: Response) {
 
     // Calculate summary
     const subtotal = cart.items.reduce(
-      ​(sum: number, item: any) => sum + Number(item.priceAtAdd) * item.quantity,
+      (sum: number, item: any) => sum + Number(item.priceAtAdd) * item.quantity,
       0
     );
     const totalItems = cart.items.length;
-    const totalQuantity = cart.items.reduce(​(sum: number, item: any) => sum + item.quantity, 0);
+    const totalQuantity = cart.items.reduce((sum: number, item: any) => sum + item.quantity, 0);
     const estimatedWeight = cart.items.reduce(
-      ​(sum: number, item: any) => sum + item.productVariant.weight * item.quantity,
+      (sum: number, item: any) => sum + item.productVariant.weight * item.quantity,
       0
     );
 
