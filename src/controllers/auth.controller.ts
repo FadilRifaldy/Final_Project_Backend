@@ -110,8 +110,8 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     });
 
     if (!user) {
-      return res.status(404).json({ 
-        message: "Email atau Password Salah" 
+      return res.status(404).json({
+        message: "Email atau Password Salah"
       });
     }
 
@@ -122,15 +122,15 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     }
 
     if (!user.password) {
-      return res.status(404).json({ 
-        message: "Email atau Password Salah" 
+      return res.status(404).json({
+        message: "Email atau Password Salah"
       });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(404).json({ 
-        message: "Email atau Password Salah" 
+      return res.status(404).json({
+        message: "Email atau Password Salah"
       });
     }
 
@@ -148,23 +148,23 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 
     const { password: _, ...userWithoutPassword } = user;
 
-//     return res
-//       .status(200)
-//       .cookie("authToken", token, {
-//         httpOnly: true,
-//         secure: false, // FALSE untuk development (localhost)
-//         sameSite: "lax", // LAX untuk same-site, NONE untuk cross-origin
-//         path: "/", 
-//         maxAge: 60 * 60 * 1000,
-//       })
-//       .json({
-//         message: "Login Successfully",
-//         user: userWithoutPassword,
-//       });
-//   } catch (error) {
-//     next(error);
-//   }
-// }
+    //     return res
+    //       .status(200)
+    //       .cookie("authToken", token, {
+    //         httpOnly: true,
+    //         secure: false, // FALSE untuk development (localhost)
+    //         sameSite: "lax", // LAX untuk same-site, NONE untuk cross-origin
+    //         path: "/", 
+    //         maxAge: 60 * 60 * 1000,
+    //       })
+    //       .json({
+    //         message: "Login Successfully",
+    //         user: userWithoutPassword,
+    //       });
+    //   } catch (error) {
+    //     next(error);
+    //   }
+    // }
 
     return res
       .status(200)
@@ -172,13 +172,12 @@ export async function login(req: Request, res: Response, next: NextFunction) {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        path: "/", 
+        path: "/",
         maxAge: 60 * 60 * 1000,
       })
       .json({
         message: "Login Successfully",
         user: userWithoutPassword,
-        token, // Add token to response
       });
   } catch (error) {
     next(error);
@@ -360,7 +359,6 @@ export async function socialLogin(req: Request, res: Response) {
       success: true,
       message: "Login Google berhasil",
       user,
-      token, // Add token to response
     });
   } catch (err) {
     console.error(err);
