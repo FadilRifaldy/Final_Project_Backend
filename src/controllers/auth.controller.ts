@@ -178,6 +178,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       .json({
         message: "Login Successfully",
         user: userWithoutPassword,
+        token, // Add token to response
       });
   } catch (error) {
     next(error);
@@ -359,6 +360,7 @@ export async function socialLogin(req: Request, res: Response) {
       success: true,
       message: "Login Google berhasil",
       user,
+      token, // Add token to response
     });
   } catch (err) {
     console.error(err);
