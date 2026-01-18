@@ -28,7 +28,7 @@ class StockJournalService {
         }
 
         // ATOMIC TRANSACTION - Critical untuk data consistency
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: any) => {
             // 1. Get atau create inventory record
             let inventory = await tx.inventory.findUnique({
                 where: {
@@ -129,7 +129,7 @@ class StockJournalService {
         }
 
         // ATOMIC TRANSACTION
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: any) => {
             // 1. Get inventory (harus sudah ada untuk stock OUT)
             const inventory = await tx.inventory.findUnique({
                 where: {
@@ -404,7 +404,7 @@ class StockJournalService {
         // 2. Group & aggregate per variant
         const summaryMap = new Map();
 
-        journals.forEach(journal => {
+        journals.forEach((journal: any) => {
             const variantId = journal.productVariantId;
 
             if (!summaryMap.has(variantId)) {

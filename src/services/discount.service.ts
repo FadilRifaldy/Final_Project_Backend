@@ -127,7 +127,7 @@ class DiscountService {
         }
 
         // Create dengan transaction (penting untuk data consistency!)
-        const discount = await prisma.$transaction(async (tx) => {
+        const discount = await prisma.$transaction(async (tx: any) => {
             // Step 1: Create discount
             const newDiscount = await tx.discount.create({
                 data: {
@@ -215,7 +215,7 @@ class DiscountService {
         }
 
         // Update dengan transaction
-        const discount = await prisma.$transaction(async (tx) => {
+        const discount = await prisma.$transaction(async (tx: any) => {
             // Step 1: Update discount data
             const updatedDiscount = await tx.discount.update({
                 where: { id },

@@ -220,17 +220,17 @@ class InventoryService {
             switch (stockStatus) {
                 case 'in-stock':
                     inventoriesWithAvailable = inventoriesWithAvailable.filter(
-                        (inv) => inv.quantity > 0
+                        (inv: any) => inv.quantity > 0
                     );
                     break;
                 case 'low-stock':
                     inventoriesWithAvailable = inventoriesWithAvailable.filter(
-                        (inv) => inv.quantity > 0 && inv.quantity <= 10
+                        (inv: any) => inv.quantity > 0 && inv.quantity <= 10
                     );
                     break;
                 case 'out-of-stock':
                     inventoriesWithAvailable = inventoriesWithAvailable.filter(
-                        (inv) => inv.quantity === 0
+                        (inv: any) => inv.quantity === 0
                     );
                     break;
             }
@@ -238,9 +238,9 @@ class InventoryService {
 
         // Sort by stock (after filtering)
         if (sortBy === 'stock-high') {
-            inventoriesWithAvailable.sort((a, b) => b.quantity - a.quantity);
+            inventoriesWithAvailable.sort((a: any, b: any) => b.quantity - a.quantity);
         } else if (sortBy === 'stock-low') {
-            inventoriesWithAvailable.sort((a, b) => a.quantity - b.quantity);
+            inventoriesWithAvailable.sort((a: any, b: any) => a.quantity - b.quantity);
         }
 
         return {
@@ -284,13 +284,13 @@ class InventoryService {
         });
 
         // Calculate available stock dan total
-        const inventoriesWithAvailable = inventories.map((inv) => ({
+        const inventoriesWithAvailable = inventories.map((inv: any) => ({
             ...inv,
             available: inv.quantity - inv.reserved,
         }));
 
-        const totalQuantity = inventories.reduce((sum, inv) => sum + inv.quantity, 0);
-        const totalReserved = inventories.reduce((sum, inv) => sum + inv.reserved, 0);
+        const totalQuantity = inventories.reduce((sum: number, inv: any) => sum + inv.quantity, 0);
+        const totalReserved = inventories.reduce((sum: number, inv: any) => sum + inv.reserved, 0);
         const totalAvailable = totalQuantity - totalReserved;
 
         return {
@@ -416,7 +416,7 @@ class InventoryService {
 
         // Create inventory record untuk setiap store dengan quantity 0
         const inventories = await Promise.all(
-            stores.map((store) =>
+            stores.map((store: any) =>
                 prisma.inventory.upsert({
                     where: {
                         productVariantId_storeId: {
