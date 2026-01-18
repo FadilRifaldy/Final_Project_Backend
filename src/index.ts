@@ -34,21 +34,23 @@ const app: Application = express();
 // define app basic middleware
 const allowedOrigins = [
   "http://localhost:3000",
+  "https://final-project-frontend-eight.vercel.app", // Production frontend
   process.env.APP_URL || "http://localhost:3000"
-];
+].filter(Boolean); // Remove any undefined values
 
-app.use(cors({ 
+app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      console.log(`CORS blocked origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true 
+  credentials: true
 }));
 app.use(express.json()); // for receive req.body
 app.use(cookieParser());
