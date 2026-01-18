@@ -8,7 +8,6 @@
     "build": "echo 'Build complete'",
     "seed:variants": "tsx prisma/seed-variants.ts"
   },
-  "type": "module",
   "keywords": [],
   "author": "",
   "license": "ISC",
