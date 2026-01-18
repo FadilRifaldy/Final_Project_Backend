@@ -44,7 +44,7 @@ export async function getSearchSuggestions(req: Request, res: Response) {
       };
     });
 
-    const storeSuggestions = stores.map((s) => ({
+    const storeSuggestions = stores.map((s: any) => ({
       id: s.id,
       name: s.name,
       type: "store" as const,
@@ -54,7 +54,7 @@ export async function getSearchSuggestions(req: Request, res: Response) {
 
     // Remove duplicate products
     const uniqueProducts = Array.from(
-      new Map(productSuggestions.map((p) => [p.id, p])).values()
+      new Map(productSuggestions.map((p: any) => [p.id, p])).values()
     );
 
     const suggestions = [...uniqueProducts, ...storeSuggestions];
@@ -83,7 +83,7 @@ export async function getAvailableCities(req: Request, res: Response) {
       orderBy: { city: "asc" },
     });
 
-    const cityList = cities.map((c) => c.city).filter(Boolean);
+    const cityList = cities.map((c: any) => c.city).filter(Boolean);
 
     return res.status(200).json({
       success: true,
@@ -228,18 +228,18 @@ export async function searchProducts(req: Request, res: Response) {
     ]);
 
     // Format response
-    const data = products.map((product) => {
+    const data = products.map((product: any) => {
       const store = product.variants[0]?.inventory[0]?.store;
 
-      const availableStock = product.variants.reduce((total, variant) => {
-        const stock = variant.inventory.reduce((sum, inv) => {
+      const availableStock = product.variants.reduce((total: number, variant: any) => {
+        const stock = variant.inventory.reduce((sum: number, inv: any) => {
           return sum + (inv.quantity - inv.reserved);
         }, 0);
         return total + stock;
       }, 0);
 
       const lowestPrice = Math.min(
-        ...product.variants.map((v) => parseFloat(v.price.toString()))
+        ...product.variants.map((v: any) => parseFloat(v.price.toString()))
       );
 
       return {
@@ -364,7 +364,7 @@ export async function searchStores(req: Request, res: Response) {
     ]);
 
     // Format response
-    const data = stores.map((store) => ({
+    const data = stores.map((store: any) => ({
       id: store.id,
       name: store.name,
       address: store.address,

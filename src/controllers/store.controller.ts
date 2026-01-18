@@ -345,7 +345,7 @@ export async function getStoreProducts(req: Request, res: Response) {
     ]);
 
     // Transform data for frontend
-    const products = inventory.map((inv) => {
+    const products = inventory.map((inv: any) => {
       const variant = inv.productVariant;
       const product = variant.product;
 
@@ -437,7 +437,7 @@ export async function getNearestStore(req: Request, res: Response) {
     }
 
     // Calculate distance for each store
-    const storesWithDistance = stores.map((store) => {
+    const storesWithDistance = stores.map((store: any) => {
       const distance = calculateDistance(
         userLat,
         userLon,
@@ -454,11 +454,11 @@ export async function getNearestStore(req: Request, res: Response) {
 
     // Sort by distance (ascending)
     const sortedStores = storesWithDistance.sort(
-      (a, b) => a.distance - b.distance
+      (a: any, b: any) => a.distance - b.distance
     );
 
     // Get nearest store that is within service radius
-    const nearestInRange = sortedStores.find((s) => s.isInRange);
+    const nearestInRange = sortedStores.find((s: any) => s.isInRange);
 
     // If no store in range, return the nearest one anyway
     const nearestStore = nearestInRange || sortedStores[0];

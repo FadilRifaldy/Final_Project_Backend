@@ -31,7 +31,7 @@ export async function getStoreAdmins(req: Request, res: Response) {
       },
     });
 
-    const formattedAdmins = storeAdmins.map((admin) => ({
+    const formattedAdmins = storeAdmins.map((admin: any) => ({
       id: admin.id,
       name: admin.name,
       email: admin.email,
@@ -138,7 +138,7 @@ export async function assignStoreToAdmin(req: Request, res: Response) {
     }
 
     const existingAssignment = user.userStores.find(
-      (us) => us.storeId === storeId
+      (us: any) => us.storeId === storeId
     );
 
     if (existingAssignment) {

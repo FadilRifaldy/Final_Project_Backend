@@ -267,7 +267,7 @@ class ProductVariantImageService {
             },
         });
 
-        return assignments.map((a) => a.variant);
+        return assignments.map(​(a: any) => a.variant);
     }
 }
 

@@ -144,7 +144,7 @@ export async function calculateShippingCost(req: Request, res: Response) {
     // Use weight from body (estimated by frontend) or calculate from cart items
     let totalWeight = weight;
     if (!totalWeight) {
-      totalWeight = cart.items.reduce((sum, item) => {
+      totalWeight = cart.items.reduce((sum: number, item: any) => {
         return sum + (item.productVariant.weight * item.quantity);
       }, 0);
     }
